@@ -1,0 +1,29 @@
+name: CI v1.1 Visualization
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  visualize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r v1_1_visualization/requirements.txt
+      - name: Run visualization
+        run: |
+          python -m v1_1_visualization.src.main --tle v1_0_basic_pass_predictor/data/tle.txt --hours 1 --step 60 --plots both --outdir v1_1_visualization/outputs/plots
+      - name: Upload plot artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: v1_1-plots
+          path: v1_1_visualization/outputs/plots
