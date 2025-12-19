@@ -14,7 +14,6 @@ from datetime import datetime, timezone
 from typing import List, Tuple
 
 from sgp4.api import Satrec, jday
-from sgp4 import api  # For GMST calculation
 
 
 @dataclass
