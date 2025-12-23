@@ -658,7 +658,10 @@ Output:
 ## Step 8: Visualization (v1.1)
 
 ### 8a. Ground Track Plot
-**Goal:** Show satellite's ground track (sub-satellite point: latitude/longitude).
+**Goal:** Show satellite's ground track (sub-satellite point: latitude/longitude) — the location on Earth directly below the satellite.
+
+**What is Ground Track?**
+The **ground track** is the path traced on Earth's surface by the point directly beneath the satellite. It shows where, if you looked straight up, you'd see the satellite.
 
 **Calculation:** For each ECEF position, convert to geodetic lat/lon.
 
@@ -680,15 +683,280 @@ def ecef_to_geodetic_latlon(ecef_km: Tuple[float, float, float]) -> Tuple[float,
     return (math.degrees(lat), lon)
 ```
 
-**Output:** Plot (time vs lon/lat) or (lon vs lat) map.
+#### Key Elements in Ground Track Plot
+
+```
+     90°N (North Pole)
+     ↑
+     │     ◆ ← Ground Track Line
+     │    ╱╲  (Satellite's footprint path)
+     │   ╱  ╲
+   0°  ────────────── 0° Equator
+     │
+    -90°S (South Pole)
+     └─────────────────
+          Longitude
+```
+
+**Important Points to Label:**
+
+1. **Ground Track Line (Blue/Purple curve)**
+   - **What it is:** Connected sequence of sub-satellite points (lat/lon) as time progresses.
+   - **Why it matters:** Shows the satellite's orbital path relative to Earth.
+   - **What to observe:**
+     - If latitude oscillates, the satellite has inclination (orbits at an angle).
+     - If longitude drifts eastward, the satellite is moving ahead of Earth's rotation.
+     - If longitude drifts westward, Earth is rotating faster (satellite moving west relative to ground).
+
+2. **Start Point (Green marker at beginning of line)**
+   - **What it is:** Sub-satellite position at the start of prediction (t₀).
+   - **Example:** 2025-12-19T00:00:00Z
+   - **Why mark it:** Tells you where the satellite was initially in the prediction window.
+
+3. **End Point (Red marker at end of line)**
+   - **What it is:** Sub-satellite position at the end of prediction (t_end).
+   - **Example:** 2025-12-21T00:00:00Z
+   - **Why mark it:** Shows the satellite's position when the prediction ends.
+
+4. **Maximum Latitude Point (Highest point on curve)**
+   - **What it is:** The northernmost (or southernmost if inclination > 90°) point the satellite reaches.
+   - **Value:** Equal to the orbital inclination (for ISS ≈ 51.6°N).
+   - **Why it matters:** Defines the satellite's "coverage zone." Ground stations outside this latitude band will never see the satellite.
+
+5. **Ground Station Location (Yellow marker or circle)**
+   - **What it is:** Your observation point (e.g., Boulder, CO at 40°N, -105°W).
+   - **Why mark it:** Shows your location relative to the satellite's ground track.
+   - **Interpretation:**
+     - If station is inside (surrounded by) the track loop → satellite will pass overhead.
+     - If station is outside → satellite passes at low elevation.
+     - If station is at max latitude → best viewing geometry (satellite passes near zenith).
+
+6. **Date Line / Longitude Discontinuities (jumps at ±180°)**
+   - **What it is:** Apparent breaks where the ground track wraps from +180° to -180° longitude.
+   - **Why it happens:** Longitude is wrapped to [-180°, 180°]; no physical discontinuity.
+   - **Example:** If track goes from lon=179° → lon=-179°, it's actually moving 2° eastward (continuous).
+
+#### Ground Track Plot Example (ISS 48-hour window)
+
+```
+Ground Track Map (Mercator-like):
+───────────────────────────────────────────────────
+  90° N ┌─────────────────────────────────────────┐
+        │           ★ Max Latitude (51.6°N)       │
+        │          ╱│╲                             │
+   60°N │        ╱  │  ╲                           │
+        │      ╱    │    ╲                         │
+        │    ╱  🔴 Boulder ◆ Track Line           │
+   40°N │  ╱   (40°N, -105°W)                     │
+        │╱_____________________________╲___________│
+    0°  │                               ╲         │
+        │                                 ╲       │
+  -20°S │                                  ╲      │
+        │                                   ✓     │
+ -90°S  └─────────────────────────────────────────┘
+        -180°        -90°        0°       90°    180°
+        (West)                          (East)
+        
+Legend:
+  ◆ = Ground track path (computed from ECEF→geodetic)
+  🔴 = Ground station (4th point, observer location)
+  ★ = Maximum inclination (farthest north)
+  ✓ = Example southern point (track reaches 51.6°S)
+```
+
+**Matplotlib vs Plotly:**
+- **Matplotlib:** Simple 2D line plot, fast, static image.
+- **Plotly:** Interactive 2D plot; hover to see lat/lon at each point.
+
+---
 
 ### 8b. Elevation Plot
-**Goal:** Show elevation angle vs time with pass windows highlighted.
+**Goal:** Show elevation angle vs time, highlighting pass windows (when satellite is above horizon).
 
-**Features:**
-- Line: elevation curve for entire prediction window
-- Green bands: regions where elevation > threshold (pass windows)
-- Red dashes: times of maximum elevation
+**What is Elevation?**
+The **elevation angle** is how high above the horizon the satellite appears from your location, in degrees:
+- **0°:** Satellite on the horizon
+- **90°:** Satellite directly overhead (zenith)
+- **Negative:** Satellite below horizon (not visible)
+
+#### Key Elements in Elevation Plot
+
+```
+Elevation (degrees)
+      │
+   90°│                        ▲
+      │                       ╱ ╲
+      │                      ╱   ╲
+   45°│  ┌─ Threshold (10°) ╱     ╲
+      │  │                 ╱       ╲
+   10°│──┼────AOS────┐    ╱────Max──╲────LOS───┐
+      │  │           │   ╱ (21.97°) ╲         │
+    0°│──┴───────────┴──╱─────────────╲───────┴── Horizon
+      │              ╱                 ╲
+  -10°│            ╱                     ╲
+      │___________╱_______________________╲_______ Time (UTC)
+      └─────────────────────────────────────────
+         Start            Pass               End
+```
+
+**Important Points to Label:**
+
+1. **Elevation Curve (Blue line)**
+   - **What it is:** Elevation angle at each timestamp (typically 30-60s intervals).
+   - **How computed:** From ENU coordinates: el = atan2(u, √(e²+n²))
+   - **Why it matters:**
+     - Rising slope = satellite approaching overhead
+     - Falling slope = satellite receding
+     - Peaks = optimal viewing time (highest angle)
+
+2. **Horizon / Threshold Line (Horizontal red or orange line at 10°)**
+   - **What it is:** The elevation threshold separating "visible" from "invisible."
+   - **Default value:** 10° (accounts for atmospheric refraction and local terrain)
+   - **Why 10° instead of 0°:**
+     - At 0°, Earth's curvature and atmosphere bend light, making satellite hard to see.
+     - At 10°, atmospheric extinction is manageable and ground obstacles are avoided.
+   - **User-configurable:** Use `--threshold` flag to change.
+
+3. **AOS (Acquisition of Signal) - Green marker / vertical line at threshold crossing (upward)**
+   - **What it is:** Exact time elevation crosses threshold **upward** (satellite rising above horizon).
+   - **Example:** 2025-12-19T04:27:51Z
+   - **Why mark it:** Start of usable pass; begin tracking satellite.
+   - **How computed:** Linear interpolation between two samples.
+   - **Precision:** Depends on `--step` (finer step = more accurate).
+
+4. **LOS (Loss of Signal) - Red marker / vertical line at threshold crossing (downward)**
+   - **What it is:** Exact time elevation crosses threshold **downward** (satellite sinking below horizon).
+   - **Example:** 2025-12-19T04:32:41Z
+   - **Why mark it:** End of usable pass; stop tracking satellite.
+   - **How computed:** Linear interpolation between two samples.
+   - **Pass duration:** LOS time - AOS time (typical range: 2-10 minutes for LEO)
+
+5. **Max Elevation (Peak) - Purple/magenta marker on curve**
+   - **What it is:** Highest elevation angle during the pass.
+   - **Example:** 15.31° at 2025-12-19T04:30:34Z
+   - **Why it matters:**
+     - **High elevation (>45°):** Excellent viewing; satellite nearly overhead, minimal atmospheric extinction.
+     - **Medium elevation (10-45°):** Good viewing; clear line-of-sight.
+     - **Low elevation (close to threshold):** Poor viewing; atmospheric effects strong, possible obstruction.
+   - **Timing:** Usually occurs ~halfway through pass (for ISS at mid-latitudes).
+
+6. **Pass Window (Green shaded band between AOS and LOS)**
+   - **What it is:** Shaded region showing the entire usable pass interval.
+   - **Why highlight:** Visual identification of when to observe the satellite.
+   - **Multiple passes:** Multiple green bands = multiple visible passes in the prediction window.
+   - **Width:** Pass duration (related to orbital parameters and ground station latitude).
+
+7. **Background elevation (Blue curve outside pass windows)**
+   - **What it is:** Elevation when satellite is below horizon (negative or near 0°).
+   - **Why shown:** Provides context; shows when satellite is **definitely not visible**.
+   - **Typical pattern:** Oscillating near 0° outside passes.
+
+#### Elevation Plot Example (4-pass window)
+
+```
+Elevation (°)
+     │
+  90 │
+     │
+  60 │
+     │
+  45 │                        ▲ Peak 3 (48°)
+     │                       ╱ ╲
+  30 │                      ╱   ╲
+     │     ▲ Peak 1 (21°)  ╱     ╲           ▲ Peak 4 (35°)
+  15 │    ╱ ╲    ▲ Peak 2 ╱       ╲        ╱ ╲
+     │   ╱   ╲  ╱ (31°) ╲        ╲      ╱   ╲
+  10 │──AOS1──╲╱───AOS2──╲─AOS3───╲────╱────AOS4──
+     │         ╲╱         ╲       ╲  ╱       ╲
+   0 │────────LOS1────────LOS2───LOS3────────LOS4────
+     │
+  -5 │
+     └────────────────────────────────────────────── Time →
+       Day 1      Day 1      Day 2      Day 2    Day 3
+       
+Green bands = pass windows (usable)
+X-axis labels = AOS/LOS times (interpolated)
+Peak markers = Maximum elevation times
+```
+
+**Reading the Plot:**
+
+| Observation | Interpretation |
+|-------------|-----------------|
+| 4 green bands | 4 separate passes in 48-hour window |
+| Pass 1: AOS 04:27, LOS 04:32 | 5-minute pass |
+| Pass 3: peak at 48° | Best pass (nearly overhead) |
+| Large gaps between passes | Orbit geometry unfavorable for continuous coverage |
+| No peaks above 10° | Station is too far south; satellite never rises significantly |
+
+#### Matplotlib vs Plotly:
+
+- **Matplotlib:** Static image; efficient; good for reports.
+- **Plotly:** Interactive; hover to see exact elevation at any time; zoom/pan enabled.
+
+---
+
+### 8c. Visual Interpretation Quick Guide
+
+**Ground Track + Elevation Together:**
+
+```
+Ground Track shows:        Elevation Plot shows:
+└─ WHERE satellite is      └─ WHEN satellite is visible
+                             from your location
+
+Combining both:
+  ┌─ Station inside track area + high elevation peak
+  │  → Best opportunity to observe
+  │
+  ├─ Station outside track area + low elevation
+  │  → Poor observing conditions
+  │
+  └─ Station at track max latitude + elevation ~45°
+     → Optimal geometry (satellite rises high)
+```
+
+**Example Scenario:**
+```
+Ground Track: ISS track passes directly over Boulder, CO
+Elevation Plot: Peak elevation 67° at AOS+500s
+
+Interpretation:
+- Station is ON the ground track → satellite passes overhead
+- 67° is high → excellent viewing (minimal atmosphere)
+- Good target for optical/radio observation
+
+Action: Watch from AOS to LOS, aim up at max elevation time
+```
+
+---
+
+### 8d. Visualization Code Summary
+
+**Ground Track (both libraries):**
+```
+For each timestamp t in grid:
+  1. Propagate satellite → ECEF position
+  2. Convert ECEF → geodetic (lat, lon)
+  3. Plot (lon, lat) point on map
+  4. Connect all points with line
+  5. Mark start (green), end (red), max latitude (star)
+```
+
+**Elevation (both libraries):**
+```
+For each timestamp t in grid:
+  1. Compute elevation angle from ENU
+  2. Plot (time, elevation) point
+  3. Connect all points with line
+  4. Detect pass windows (elevation > threshold)
+  5. Shade pass regions green
+  6. Mark AOS, LOS, max elevation on each pass
+```
+
+**Output Formats:**
+- **Matplotlib:** `.png` files (image, static, shareable)
+- **Plotly:** `.png` (if Kaleido available) or `.html` (interactive, large file)
 
 ---
 
