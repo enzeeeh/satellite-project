@@ -15,7 +15,6 @@ from typing import List, Tuple
 
 from sgp4.api import Satrec, jday
 
-
 @dataclass
 class TemEci:
     """Container for TEME position/velocity at a timestamp."""
@@ -102,3 +101,26 @@ def teme_to_ecef(r_teme_km: Tuple[float, float, float], gmst_rad: float) -> Tupl
     y_e = -sg * x + cg * y
     z_e = z
     return (x_e, y_e, z_e)
+
+
+def propagate_satellite(line1: str, line2: str, dt: datetime) -> Tuple[Tuple, Tuple]:
+    """
+    Propagate satellite and return ECEF position/velocity.
+    
+    Args:
+        line1: TLE line 1
+        line2: TLE line 2
+        dt: UTC datetime
+    
+    Returns:
+        (pos_ecef_km, vel_ecef_km) where vel is rotated TEME velocity
+    """
+    sat = satrec_from_tle(line1, line2)
+    teme = propagate_teme(sat, dt)
+    gmst_rad = gmst_angle(dt)
+    pos_ecef = teme_to_ecef(teme.r_km, gmst_rad)
+    
+    # Rotate velocity too
+    vel_ecef = teme_to_ecef(teme.v_km_s, gmst_rad)
+    
+    return pos_ecef, vel_ecef
