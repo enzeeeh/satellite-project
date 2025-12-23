@@ -82,15 +82,19 @@ def main():
     if args.plots in ("matplotlib", "both"):
         gt_path = os.path.join(args.outdir, f"ground_track_matplotlib_{ts_suffix}.png")
         ev_path = os.path.join(args.outdir, f"elevation_matplotlib_{ts_suffix}.png")
-        plot_ground_track_matplotlib(times, ecef_series, gt_path)
-        plot_elevation_matplotlib(times, elevations, passes, ev_path)
+        plot_ground_track_matplotlib(times, ecef_series, gt_path, 
+                                    station_lat=args.lat, station_lon=args.lon)
+        plot_elevation_matplotlib(times, elevations, passes, ev_path, 
+                                 threshold_deg=args.threshold)
         print(f"Saved: {gt_path}")
         print(f"Saved: {ev_path}")
     if args.plots in ("plotly", "both"):
         gt_path = os.path.join(args.outdir, f"ground_track_plotly_{ts_suffix}.png")
         ev_path = os.path.join(args.outdir, f"elevation_plotly_{ts_suffix}.png")
-        gt_out = plot_ground_track_plotly(times, ecef_series, gt_path)
-        ev_out = plot_elevation_plotly(times, elevations, passes, ev_path)
+        gt_out = plot_ground_track_plotly(times, ecef_series, gt_path,
+                                         station_lat=args.lat, station_lon=args.lon)
+        ev_out = plot_elevation_plotly(times, elevations, passes, ev_path,
+                                      threshold_deg=args.threshold)
         print(f"Saved: {gt_out}")
         print(f"Saved: {ev_out}")
 
