@@ -1,0 +1,92 @@
+{
+  "metadata": {
+    "generated_utc": "2025-12-23T03:54:35.175199Z",
+    "version": "1.0",
+    "purpose": "SGP4 vs synthetic truth residuals for ML training"
+  },
+  "overall_statistics": {
+    "pass_count": 4,
+    "position_error_km": {
+      "mean": 0.0,
+      "std": 0.0,
+      "min": 0.0,
+      "max": 0.0,
+      "median": 0.0
+    },
+    "aos_error_sec": {
+      "mean": -0.036096500000000004,
+      "std": 0.02963117159766046,
+      "min": -0.074548,
+      "max": 0.003841,
+      "median": -0.0368395
+    },
+    "los_error_sec": {
+      "mean": -0.01738025,
+      "std": 0.022837756932052238,
+      "min": -0.053919,
+      "max": 0.008979,
+      "median": -0.0122905
+    },
+    "max_elevation_error_deg": {
+      "mean": 0.0042371798536957606,
+      "std": 0.006939890373016045,
+      "min": -0.001046982875266167,
+      "max": 0.015942291596850566,
+      "median": 0.0010267053465993214
+    }
+  },
+  "residuals_by_pass": [
+    {
+      "pass_index": 0,
+      "sgp4_aos_utc": "2025-12-23T04:49:28.362708Z",
+      "truth_aos_utc": "2025-12-23T04:49:28.366549Z",
+      "aos_error_sec": 0.003841,
+      "sgp4_los_utc": "2025-12-23T04:56:51.281538Z",
+      "truth_los_utc": "2025-12-23T04:56:51.270756Z",
+      "los_error_sec": -0.010782,
+      "sgp4_max_el_deg": 20.4203,
+      "truth_max_el_deg": 20.4192,
+      "max_el_error_deg": -0.001,
+      "position_error_km": 0.0
+    },
+    {
+      "pass_index": 1,
+      "sgp4_aos_utc": "2025-12-23T06:25:20.981198Z",
+      "truth_aos_utc": "2025-12-23T06:25:20.959147Z",
+      "aos_error_sec": -0.022051,
+      "sgp4_los_utc": "2025-12-23T06:31:53.001943Z",
+      "truth_los_utc": "2025-12-23T06:31:52.988144Z",
+      "los_error_sec": -0.013799,
+      "sgp4_max_el_deg": 19.8139,
+      "truth_max_el_deg": 19.8131,
+      "max_el_error_deg": -0.0009,
+      "position_error_km": 0.0
+    },
+    {
+      "pass_index": 2,
+      "sgp4_aos_utc": "2025-12-23T18:05:25.100506Z",
+      "truth_aos_utc": "2025-12-23T18:05:25.048878Z",
+      "aos_error_sec": -0.051628,
+      "sgp4_los_utc": "2025-12-23T18:14:20.274740Z",
+      "truth_los_utc": "2025-12-23T18:14:20.220821Z",
+      "los_error_sec": -0.053919,
+      "sgp4_max_el_deg": 46.3281,
+      "truth_max_el_deg": 46.344,
+      "max_el_error_deg": 0.0159,
+      "position_error_km": 0.0
+    },
+    {
+      "pass_index": 3,
+      "sgp4_aos_utc": "2025-12-23T19:43:23.958448Z",
+      "truth_aos_utc": "2025-12-23T19:43:23.883900Z",
+      "aos_error_sec": -0.074548,
+      "sgp4_los_utc": "2025-12-23T19:46:06.418777Z",
+      "truth_los_utc": "2025-12-23T19:46:06.427756Z",
+      "los_error_sec": 0.008979,
+      "sgp4_max_el_deg": 13.4019,
+      "truth_max_el_deg": 13.4048,
+      "max_el_error_deg": 0.0029,
+      "position_error_km": 0.0
+    }
+  ]
+}
