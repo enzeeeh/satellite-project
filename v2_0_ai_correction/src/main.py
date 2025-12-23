@@ -9,11 +9,11 @@ import sys
 from pathlib import Path
 from datetime import datetime, timedelta
 
-# Add parent to path for v1_0 imports
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / "v1_0_basic_pass_predictor"))
-sys.path.insert(0, str(Path(__file__).parent))
+# Import satcore physics (unified core library)
+from satcore.ground_station import GroundStation  # type: ignore
 
-from src.ground_station import GroundStation
+# Import v2.0 modules
+sys.path.insert(0, str(Path(__file__).parent))
 from ml.train import generate_synthetic_training_data, train_model
 from pipeline import predict_passes_with_correction
 

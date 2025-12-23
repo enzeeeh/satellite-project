@@ -6,15 +6,12 @@ Combines SGP4 orbit propagation with ML-based residual prediction for improved a
 
 from datetime import datetime, timedelta
 import numpy as np
-import sys
-from pathlib import Path
 
-# Import v1_0 physics
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / "v1_0_basic_pass_predictor"))
-from src.tle_loader import load_tle
-from src.propagator import propagate_satellite, gmst_angle
-from src.ground_station import GroundStation
-from src.pass_detector import detect_passes
+# Import satcore physics (unified core library)
+from satcore.tle_loader import load_tle  # type: ignore
+from satcore.propagator import propagate_satellite  # type: ignore
+from satcore.ground_station import GroundStation  # type: ignore
+from satcore.pass_detector import detect_passes  # type: ignore
 
 # Import ML correction
 from ml.predict import ResidualCorrector, apply_correction_to_position
