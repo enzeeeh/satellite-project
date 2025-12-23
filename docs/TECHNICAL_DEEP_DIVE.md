@@ -1072,7 +1072,7 @@ Given TLE lines, we extract:
 #### 1. TLE Epoch (Age)
 ```python
 # TLE Line 1: "1 43770U 18099N   18337.80370529  .00000000  00000-0  00000-0 0    18"
-#                               ^^^ ^^^^^^^^ 
+#                                ^^^ ^^^^^^^^ 
 #                            year day_of_year
 
 epoch_year = 18      # → full year 2018
@@ -1099,7 +1099,7 @@ orbital_period_min = 1440 / 14.94922885 ≈ 96.3 min  # ~1.6 hours
 #### 3. Eccentricity (Orbit Shape)
 ```python
 # TLE Line 2: "2 43770  97.7684  46.9569 0012665 260.4419  20.6997 14.94922885    15"
-#                                    ^^^^^^
+#                                        ^^^^^^
 #                                  eccentricity (prepend "0.")
 
 eccentricity = 0.0012665  # Nearly circular (0 = perfect circle, 1 = parabolic)
@@ -1108,7 +1108,7 @@ eccentricity = 0.0012665  # Nearly circular (0 = perfect circle, 1 = parabolic)
 #### 4. Inclination (Orbit Tilt)
 ```python
 # TLE Line 2: "2 43770  97.7684  46.9569 0012665 260.4419  20.6997 14.94922885    15"
-#                        ^^^^^^^
+#                       ^^^^^^^
 #                      inclination
 
 inclination_deg = 97.7684°  # ISS orbits nearly pole-to-pole (90° = equatorial)
