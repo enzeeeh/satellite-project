@@ -71,12 +71,24 @@ Saved under `v1_1_visualization/outputs/plots` with names like:
 - Shows the sub-satellite point (latitude/longitude) over time.
 - Computed by converting the satellite ECEF position to WGS84 geodetic lat/lon.
 - Longitude is wrapped to `[-180°, 180°]`. Expect line breaks near the International Date Line.
+- **Annotations** (with colored markers and labels):
+  - **START** (green circle): Opening position with UTC timestamp.
+  - **END** (red circle): Closing position with UTC timestamp.
+  - **MAX_LAT** (yellow star): Northernmost latitude reached.
+  - **STATION** (red triangle): Ground observer location with coordinates (lat, lon).
 
 #### Elevation vs Time
 - Elevation curve for the entire prediction window.
-- Green bands mark detected pass intervals (above threshold).
-- Red dashed line indicates the max elevation time in each pass.
-- Use this to quickly see pass durations, peaks, and spacing.
+- Green shaded bands mark detected pass intervals (above threshold).
+- Orange dashed line indicates the threshold elevation (default 10°).
+- Black line at 0° is the geometric horizon.
+- **Annotations** (with colored markers and labels):
+  - **AOS** (green circle): Acquisition of signal—where elevation crosses the threshold upward.
+  - **LOS** (red circle): Loss of signal—where elevation crosses the threshold downward.
+  - **MAX** (purple star): Peak elevation angle with value (degrees) and pass duration.
+  - **Threshold line** (orange dashed): Minimum elevation for a usable pass.
+  - **Pass duration labels**: Minutes shown above each pass window for quick reference.
+- Use this to see pass durations, peaks, visibility windows, and observation timing.
 
 ## Physics Notes (unchanged from v1.0)
 - Orbits propagated in TEME using SGP4 (`Satrec.sgp4`).
