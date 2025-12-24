@@ -1,7 +1,7 @@
 """TLE loader utility.
 
-Reads a TLE file containing exactly three non-empty lines (name, line1, line2).
-Lines starting with '#" are ignored.
+Reads a TLE file containing at least three non-empty lines (name, line 1,
+line 2). Lines beginning with "#" are treated as comments and ignored.
 """
 from typing import Tuple
 
@@ -9,14 +9,14 @@ from typing import Tuple
 def load_tle(path: str) -> Tuple[str, str, str]:
     """Load a TLE from a text file.
 
-    The file should contain three lines (name, line 1, line 2). Lines starting
-    with '#' are ignored. Extra blank lines are ignored.
+    The file should contain a name line followed by TLE lines 1 and 2.
+    Lines starting with "#" and blank lines are ignored.
 
     Args:
         path: Path to the TLE file.
 
     Returns:
-        Tuple of (name, line1, line2)
+        (name, line1, line2)
 
     Raises:
         ValueError: If the file does not contain a valid TLE.

@@ -1,4 +1,10 @@
-"""Pass detection utilities."""
+"""Pass detection utilities.
+
+Implements threshold-based detection of satellite passes over a ground
+station using elevation samples. A pass begins at AOS (acquisition of signal)
+when elevation crosses the threshold upward, and ends at LOS (loss of signal)
+when it crosses downward.
+"""
 from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
@@ -7,6 +13,15 @@ from typing import List, Sequence
 
 @dataclass
 class PassEvent:
+    """Detected pass summary.
+
+    Attributes:
+        start_time: AOS timestamp (threshold upward crossing or first sample above).
+        max_time: Timestamp of maximum elevation within the pass.
+        end_time: LOS timestamp (threshold downward crossing or last sample).
+        max_elevation_deg: Maximum elevation angle in degrees.
+    """
+
     start_time: datetime  # AOS (threshold crossing)
     max_time: datetime
     end_time: datetime    # LOS (threshold crossing)
@@ -14,7 +29,11 @@ class PassEvent:
 
 
 def _interp_time(t0: datetime, t1: datetime, y0: float, y1: float, y: float) -> datetime:
-    """Linearly interpolate time when y crosses a target between two samples."""
+    """Linear interpolation for crossing time.
+
+    Interpolates the timestamp at which a value between two samples reaches
+    the target `y`.
+    """
     if y1 == y0:
         return t0
     frac = (y - y0) / (y1 - y0)
@@ -22,7 +41,16 @@ def _interp_time(t0: datetime, t1: datetime, y0: float, y1: float, y: float) -> 
 
 
 def detect_passes(times: Sequence[datetime], elev_deg: Sequence[float], threshold_deg: float = 10.0) -> List[PassEvent]:
-    """Detect satellite passes where elevation exceeds threshold."""
+    """Detect passes from elevation samples.
+
+    Args:
+        times: Sequence of UTC timestamps.
+        elev_deg: Elevation samples in degrees for each timestamp.
+        threshold_deg: Elevation threshold for AOS/LOS (default 10°).
+
+    Returns:
+        List of `PassEvent` objects, possibly empty.
+    """
     if not times or len(times) != len(elev_deg):
         return []
 

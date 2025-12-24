@@ -1,7 +1,7 @@
-"""Shared core utilities for pass prediction.
+"""Shared core utilities for satellite pass prediction.
 
-This package centralizes the SGP4 propagation helpers, ground station
-geometry, pass detection, and TLE loading used across project versions.
+Centralizes orbit propagation helpers, ground station geometry, pass detection,
+and TLE loading used across project versions (v1.0, v1.1, v1.2, v2.0).
 """
 
 from .tle_loader import load_tle

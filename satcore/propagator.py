@@ -1,4 +1,13 @@
-"""Propagation and coordinate transforms shared across tools."""
+"""Propagation and coordinate transforms.
+
+Provides thin wrappers around SGP4 for TEME propagation, Greenwich Mean
+Sidereal Time (GMST) calculation, and a simplified TEME→ECEF rotation.
+
+Notes:
+- The TEME→ECEF conversion here uses a basic Z-axis rotation by GMST and
+    intentionally ignores polar motion, UT1-UTC offsets, and nutation.
+    For high-precision applications, consider using Astropy or IAU2006 models.
+"""
 from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -9,7 +18,13 @@ from sgp4.api import Satrec, jday
 
 @dataclass
 class TemEci:
-    """Container for TEME position/velocity at a timestamp."""
+    """TEME state at a timestamp.
+
+    Attributes:
+        dt: UTC datetime corresponding to this state.
+        r_km: TEME position vector in kilometers (x, y, z).
+        v_km_s: TEME velocity vector in kilometers/second (vx, vy, vz).
+    """
 
     dt: datetime
     r_km: Tuple[float, float, float]
@@ -17,12 +32,20 @@ class TemEci:
 
 
 def satrec_from_tle(line1: str, line2: str) -> Satrec:
-    """Create a Satrec object from TLE lines."""
+    """Create an SGP4 `Satrec` from TLE lines.
+
+    Args:
+        line1: First TLE line (must start with "1 ").
+        line2: Second TLE line (must start with "2 ").
+
+    Returns:
+        Initialized `Satrec` ready for propagation.
+    """
     return Satrec.twoline2rv(line1, line2)
 
 
 def propagate_teme(sat: Satrec, dt: datetime) -> TemEci:
-    """Propagate the satellite to the given UTC datetime.
+    """Propagate to a UTC datetime in TEME frame.
 
     Args:
         sat: Initialized Satrec object.
@@ -45,7 +68,17 @@ def propagate_teme(sat: Satrec, dt: datetime) -> TemEci:
 
 
 def gmst_angle(dt: datetime) -> float:
-    """Compute GMST angle (radians) from UTC datetime using IAU 1982 formula."""
+    """Compute GMST angle in radians.
+
+    Uses the IAU 1982 formula based on UT1 and Julian date. This is
+    sufficient for many visualization and pass-prediction tasks.
+
+    Args:
+        dt: UTC datetime (naive treated as UTC).
+
+    Returns:
+        GMST angle in radians in the range [0, 2π).
+    """
     import math
 
     if dt.tzinfo is None:
@@ -62,7 +95,18 @@ def gmst_angle(dt: datetime) -> float:
 
 
 def teme_to_ecef(r_teme_km: Tuple[float, float, float], gmst_rad: float) -> Tuple[float, float, float]:
-    """Rotate TEME to ECEF using a simple Z-rotation by GMST."""
+    """Rotate a TEME vector into ECEF via GMST.
+
+    This function applies a Z-axis rotation by the GMST angle. It does not
+    account for polar motion or other small corrections.
+
+    Args:
+        r_teme_km: TEME vector (position or velocity) in kilometers.
+        gmst_rad: GMST angle in radians.
+
+    Returns:
+        ECEF vector in kilometers.
+    """
     import math
 
     x, y, z = r_teme_km
@@ -75,7 +119,16 @@ def teme_to_ecef(r_teme_km: Tuple[float, float, float], gmst_rad: float) -> Tupl
 
 
 def propagate_satellite(line1: str, line2: str, dt: datetime) -> Tuple[Tuple, Tuple]:
-    """Propagate satellite and return ECEF position/velocity."""
+    """Convenience: propagate to ECEF position/velocity.
+
+    Args:
+        line1: TLE line 1.
+        line2: TLE line 2.
+        dt: UTC datetime to propagate to.
+
+    Returns:
+        Tuple of (position_ecef_km, velocity_ecef_km_s).
+    """
     sat = satrec_from_tle(line1, line2)
     teme = propagate_teme(sat, dt)
     gmst_rad = gmst_angle(dt)
