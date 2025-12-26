@@ -1,7 +1,7 @@
 """Tests for pass detection logic."""
 import pytest
 from datetime import datetime, timedelta
-from satcore.pass_detector import detect_passes, PassEvent
+from src.core.pass_detector import PassEvent, detect_passes
 
 
 def test_detect_simple_pass():

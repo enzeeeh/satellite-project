@@ -1,7 +1,7 @@
 """Tests for ground station geometry."""
 import pytest
 import math
-from satcore.ground_station import GroundStation
+from src.core.ground_station import GroundStation
 
 
 def test_ground_station_properties():

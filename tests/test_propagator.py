@@ -2,7 +2,7 @@
 import pytest
 import math
 from datetime import datetime, timezone
-from satcore.propagator import gmst_angle, teme_to_ecef
+from src.core.propagator import gmst_angle, teme_to_ecef
 
 
 def test_gmst_angle_j2000():

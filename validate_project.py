@@ -10,7 +10,7 @@ This script lets you step-by-step explore the satellite project:
 5. Compare versions
 """
 
-from satcore import load_tle, propagate_satellite, GroundStation, detect_passes
+from src.core import GroundStation, detect_passes, load_tle, propagate_satellite
 from datetime import datetime, timedelta
 import sys
 

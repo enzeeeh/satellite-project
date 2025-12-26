@@ -1,7 +1,7 @@
 """Tests for TLE loading."""
 import pytest
 from pathlib import Path
-from satcore.tle_loader import load_tle
+from src.core.tle_loader import load_tle
 
 
 def test_load_valid_tle(tmp_path):

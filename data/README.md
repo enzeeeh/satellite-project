@@ -78,7 +78,7 @@ NAME
 ## Using TLEs in Tests & Code
 
 ```python
-from satcore import load_tle
+from src.core import load_tle
 
 # Load LEO satellite
 name, line1, line2 = load_tle("data/tle_leo/AO-91.txt")

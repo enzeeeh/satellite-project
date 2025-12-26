@@ -2,5 +2,5 @@
 import sys
 from pathlib import Path
 
-# Add satcore to path
+# Add project root to Python path for local imports
 sys.path.insert(0, str(Path(__file__).parent.parent))

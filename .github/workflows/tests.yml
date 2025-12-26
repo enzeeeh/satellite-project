@@ -37,7 +37,7 @@ jobs:
       run: pytest tests/test_integration_geo.py -v --tb=short
 
     - name: Generate coverage report
-      run: pytest tests/ --cov=satcore --cov-report=term-report:coverage.txt --cov-report=html
+      run: pytest tests/ --cov=src --cov-report=term-report:coverage.txt --cov-report=html
 
     - name: Display coverage summary
       run: cat coverage.txt

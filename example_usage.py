@@ -10,7 +10,7 @@ It shows:
 4. How to interpret and use the results
 """
 
-from satcore import load_tle, propagate_satellite, GroundStation, detect_passes
+from src.core import GroundStation, detect_passes, load_tle, propagate_satellite
 from datetime import datetime, timedelta
 
 def print_pass_info(pass_num, pass_event, station_name):

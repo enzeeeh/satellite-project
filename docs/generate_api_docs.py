@@ -1,4 +1,4 @@
-"""Generate HTML API documentation for satcore using pdoc.
+"""Generate HTML API documentation for src.core using pdoc.
 
 Outputs to docs/api/. Requires `pdoc` installed in the active environment.
 Usage:
@@ -14,7 +14,7 @@ OUT_DIR = ROOT / "docs" / "api"
 
 def main() -> None:
     OUT_DIR.mkdir(parents=True, exist_ok=True)
-    cmd = [sys.executable, "-m", "pdoc", "-o", str(OUT_DIR), "satcore"]
+    cmd = [sys.executable, "-m", "pdoc", "-o", str(OUT_DIR), "src.core"]
     print("Generating API docs:", " ".join(cmd))
     subprocess.check_call(cmd, cwd=str(ROOT))
     print(f"\n✓ API docs generated in: {OUT_DIR}")

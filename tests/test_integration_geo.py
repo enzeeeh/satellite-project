@@ -4,7 +4,7 @@ Tests v2.0 propagation using real GEO TLE data.
 """
 from datetime import datetime, timedelta
 import pytest
-from satcore import load_tle, propagate_satellite, GroundStation, detect_passes
+from src.core import GroundStation, detect_passes, load_tle, propagate_satellite
 
 
 @pytest.fixture

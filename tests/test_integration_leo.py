@@ -4,7 +4,7 @@ Tests v1.0, v1.1, v1.2 pass prediction using real TLE data (AO-91, AO-95).
 """
 from datetime import datetime, timedelta
 import pytest
-from satcore import load_tle, propagate_satellite, GroundStation, detect_passes
+from src.core import GroundStation, detect_passes, load_tle, propagate_satellite
 
 
 @pytest.fixture
