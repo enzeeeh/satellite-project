@@ -120,6 +120,45 @@ def propagate_and_compute_elevations(
     return elevations, ecef_series
 
 
+def _parse_line2_features(line2: str) -> Tuple[float, float, float]:
+    """Extract mean motion (rev/day), eccentricity, inclination (deg) from TLE line 2.
+
+    Follows standard TLE fixed-width fields.
+    """
+    try:
+        # Inclination (deg) columns 9-16 (1-based); Python slice 8:16
+        inc_deg = float(line2[8:16].strip())
+        # Eccentricity columns 27-33 as 7-digit fractional without decimal; slice 26:33
+        ecc_str = line2[26:33].strip()
+        eccentricity = float(f"0.{ecc_str}") if ecc_str else 0.0
+        # Mean motion (rev/day) columns 53-63; slice 52:63
+        mm_rev_per_day = float(line2[52:63].strip())
+        return mm_rev_per_day, eccentricity, inc_deg
+    except Exception:
+        # Fallback using split if fixed-width parse fails
+        parts = line2.split()
+        inc_deg = float(parts[2])
+        eccentricity = float(f"0.{parts[4]}")
+        mm_rev_per_day = float(parts[7])
+        return mm_rev_per_day, eccentricity, inc_deg
+
+
+def _epoch_from_line1(line1: str) -> datetime:
+    """Parse epoch from TLE line 1 and return UTC datetime.
+
+    Epoch field: columns 19-32 (1-based): YYDDD.DDDDDDDD
+    """
+    # Slice 18:32 in Python (0-based)
+    field = line1[18:32].strip()
+    yy = int(field[:2])
+    year = 2000 + yy if yy < 57 else 1900 + yy
+    day_fraction = float(field[2:])
+    day_int = int(day_fraction)
+    frac = day_fraction - day_int
+    epoch = datetime(year, 1, 1, tzinfo=timezone.utc) + timedelta(days=day_fraction - 1)
+    return epoch
+
+
 def passes_to_dict(passes: List[PassEvent], prediction_type: str = "basic") -> List[Dict[str, Any]]:
     """Convert PassEvent objects to dictionaries."""
     result = []
@@ -205,6 +244,53 @@ def main():
     print(f"\n[3/5] Propagating satellite...")
     elevations, ecef_series = propagate_and_compute_elevations(sat, gs, times)
     print(f"  ✓ Computed {len(elevations)} elevation samples")
+
+    # Optional: AI correction of positions/elevations
+    if args.ai_correct:
+        if not args.model:
+            print("  ✗ AI correction requested but --model path not provided; skipping correction")
+        else:
+            try:
+                # Deferred import to avoid torch unless needed
+                from src.ml.predict import ResidualCorrector, apply_correction_to_position
+
+                print(f"\n[3a] Applying ML residual corrections using model: {args.model}")
+                corrector = ResidualCorrector(model_path=args.model)
+
+                # Parse static features from TLE line 2
+                mm_rev_day, ecc, inc_deg = _parse_line2_features(line2)
+                # Epoch from line 1
+                epoch_dt = _epoch_from_line1(line1)
+
+                corrected_ecef: List[Tuple[float, float, float]] = []
+                corrected_elevations: List[float] = []
+
+                for dt, pos_ecef in zip(times, ecef_series):
+                    # Time since epoch in hours
+                    tse_hours = (dt.astimezone(timezone.utc) - epoch_dt).total_seconds() / 3600.0
+
+                    # Recompute TEME velocity and rotate to ECEF for along-track direction
+                    teme_state = propagate_teme(sat, dt)
+                    gmst = gmst_angle(dt)
+                    # Rotate TEME velocity into ECEF using same Z-rotation
+                    v_ecef = teme_to_ecef(teme_state.v_km_s, gmst)
+
+                    # Predict residual and apply along-track correction
+                    residual_km = corrector.predict_residual(
+                        time_since_epoch_hours=tse_hours,
+                        mean_motion_rev_per_day=mm_rev_day,
+                        eccentricity=ecc,
+                        inclination_deg=inc_deg,
+                    )
+                    pos_corr = apply_correction_to_position(pos_ecef, v_ecef, residual_km)
+                    corrected_ecef.append(pos_corr)
+                    corrected_elevations.append(gs.elevation_deg(pos_corr))
+
+                ecef_series = corrected_ecef
+                elevations = corrected_elevations
+                print("  ✓ ML corrections applied to all samples")
+            except Exception as e:
+                print(f"  ✗ AI correction failed: {e}. Continuing without ML corrections.")
 
     # Detect passes
     print(f"\n[4/5] Detecting passes...")

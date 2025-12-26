@@ -1,0 +1,17 @@
+version: '3.9'
+
+services:
+  satellite-predictor:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: satellite-predictor:latest
+    container_name: satellite-predictor
+    volumes:
+      - ./outputs:/app/outputs
+      - ./data:/app/data:ro
+      - ./models:/app/models:ro
+    environment:
+      - PYTHONUNBUFFERED=1
+    # Override default command when needed:
+    # command: --tle data/tle_leo/AO-91.txt --hours 24 --plot matplotlib --ai-correct --model models/residual_model.pt
