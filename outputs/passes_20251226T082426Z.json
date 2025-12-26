@@ -1,0 +1,51 @@
+{
+  "metadata": {
+    "generated_at": "2025-12-26T08:24:27.396595+00:00",
+    "satellite": "AO-91",
+    "ground_station": {
+      "latitude_deg": 40.0,
+      "longitude_deg": -105.0,
+      "altitude_m": 1600.0
+    },
+    "prediction": {
+      "start_time": "2025-12-26T08:24:26.456199+00:00",
+      "end_time": "2025-12-26T20:24:26.456199+00:00",
+      "horizon_threshold_deg": 10.0
+    },
+    "features": {
+      "visualization": false,
+      "ai_correction": true,
+      "deviation_analysis": false
+    },
+    "num_passes": 3
+  },
+  "passes": [
+    {
+      "pass_number": 1,
+      "aos_time": "2025-12-26T08:47:32.455840+00:00",
+      "tca_time": "2025-12-26T08:49:26.456199+00:00",
+      "los_time": "2025-12-26T08:51:07.351587+00:00",
+      "max_elevation_deg": 12.63,
+      "duration_minutes": 3.6,
+      "prediction_type": "basic"
+    },
+    {
+      "pass_number": 2,
+      "aos_time": "2025-12-26T17:46:25.258460+00:00",
+      "tca_time": "2025-12-26T17:48:26.456199+00:00",
+      "los_time": "2025-12-26T17:50:30.517185+00:00",
+      "max_elevation_deg": 15.76,
+      "duration_minutes": 4.1,
+      "prediction_type": "basic"
+    },
+    {
+      "pass_number": 3,
+      "aos_time": "2025-12-26T19:18:38.157583+00:00",
+      "tca_time": "2025-12-26T19:20:56.456199+00:00",
+      "los_time": "2025-12-26T19:23:49.575864+00:00",
+      "max_elevation_deg": 22.16,
+      "duration_minutes": 5.2,
+      "prediction_type": "basic"
+    }
+  ]
+}
