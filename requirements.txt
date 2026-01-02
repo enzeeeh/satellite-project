@@ -1,0 +1,6 @@
+sgp4>=2.20
+numpy>=1.20.0
+torch>=2.0.0
+matplotlib>=3.5.0
+plotly>=5.0.0
+pyproj>=3.4.0
