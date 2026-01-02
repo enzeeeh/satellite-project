@@ -21,9 +21,9 @@ jobs:
           pip install -r versions-legacy/v1_1_visualization/requirements.txt
       - name: Run visualization
         run: |
-          python -m versions.legacy.v1_1_visualization.src.main --tle versions-legacy/v1_0_basic_pass_predictor/data/tle.txt --hours 1 --step 60 --plots both --outdir versions-legacy/v1_1_visualization/outputs/plots
+          python versions-legacy/v1_1_visualization/src/main.py --tle versions-legacy/v1_0_basic_pass_predictor/data/tle.txt --hours 1 --step 60 --plots both --outdir versions-legacy/v1_1_visualization/outputs/plots
       - name: Upload plot artifacts
         uses: actions/upload-artifact@v4
         with:
           name: v1_1-plots
-          path: v1_1_visualization/outputs/plots
+          path: versions-legacy/v1_1_visualization/outputs/plots
