@@ -24,4 +24,4 @@ jobs:
           python -m compileall src
       - name: Run sample
         run: |
-          python -m src.main --tle data/tle.txt --hours 1 --step 120
+          python main.py --tle data/tle_leo/AO-91.txt --hours 1 --step 120
