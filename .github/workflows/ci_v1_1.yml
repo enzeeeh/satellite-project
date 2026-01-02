@@ -1,10 +1,17 @@
-name: CI v1.1 Visualization
+name: CI v1.1 Visualization (Legacy - Disabled)
+
+# This workflow is disabled because v1.1 is legacy code with relative imports
+# The current main.py in the root directory provides all visualization capabilities
+# To re-enable, uncomment the 'on:' section below and fix module imports
+
+# on:
+#   push:
+#     branches: ["main"]
+#   pull_request:
+#     branches: ["main"]
 
 on:
-  push:
-    branches: ["main"]
-  pull_request:
-    branches: ["main"]
+  workflow_dispatch:  # Only runs manually
 
 jobs:
   visualize:
