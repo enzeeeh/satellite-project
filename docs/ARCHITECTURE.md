@@ -407,6 +407,6 @@ Plan to support YAML/JSON config files for:
 
 ---
 
-**For implementation details**: See [Improvements](IMPROVEMENTS.md)
+**For implementation details**: See [Roadmap](ROADMAP.md)
 
 **For usage**: See [Quick Start](QUICK_START.md)

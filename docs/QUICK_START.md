@@ -201,13 +201,10 @@ python main.py --tle data/tle_leo/AO-91.txt --plot matplotlib
 ## Next Steps
 
 ### Learn the CLI
-Read [Usage Guide](USAGE_GUIDE.md) for all available options.
-
-### See More Examples
-Check [Quick Reference](QUICK_REFERENCE.md) for command examples.
+Read [Usage Guide](USAGE_GUIDE.md) for all available options (includes Quick Reference cheat sheet).
 
 ### Understand the Project
-Read [About](ABOUT.md) for project overview and capabilities.
+Read root [README.md](../README.md) for project overview and capabilities.
 
 ### Get Help
 ```bash

@@ -512,7 +512,7 @@ git push origin fix/elevation-bug
 
 ### When to Update Docs
 
-1. **After adding a feature**: Update [IMPROVEMENTS.md](IMPROVEMENTS.md)
+1. **After adding a feature**: Update [ROADMAP.md](ROADMAP.md)
 2. **After changing API**: Update [USAGE_GUIDE.md](USAGE_GUIDE.md)
 3. **After major refactor**: Update [ARCHITECTURE.md](ARCHITECTURE.md)
 4. **New examples**: Update [QUICK_START.md](QUICK_START.md)
@@ -606,4 +606,4 @@ pytest tests/test_pass_detector.py::test_aos_los_calculation -v
 
 ---
 
-**Next**: See [IMPROVEMENTS.md](IMPROVEMENTS.md) for planned features to work on
+**Next**: See [ROADMAP.md](ROADMAP.md) for planned features to work on

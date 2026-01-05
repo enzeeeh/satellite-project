@@ -12,7 +12,7 @@ Welcome to the Satellite Pass Predictor documentation!
 - Troubleshooting
 
 ### ❓ What is this project?
-**[About](ABOUT.md)** (10 min read)
+**[Root README](../README.md)** (comprehensive landing page)
 - Overview and features
 - Use cases
 - Technology stack
@@ -21,18 +21,18 @@ Welcome to the Satellite Pass Predictor documentation!
 ## Learn More
 
 ### 🔧 How to use it?
-**[Usage Guide](USAGE_GUIDE.md)** (reference)
+**[Usage Guide](USAGE_GUIDE.md)** (complete reference)
 - All command-line options
 - Detailed examples
+- Quick Reference cheat sheet
 - Output formats
 - Tips & tricks
 
-### ⚡ Quick Reference
-**[Quick Reference](QUICK_REFERENCE.md)** (cheat sheet)
-- One-liner examples
-- Flag reference table
-- Common workflows
-- File locations
+### 📊 Visualization
+**[Visualization Guide](VISUALIZATION_GUIDE.md)**
+- Plotting options (Matplotlib, Plotly)
+- Ground tracks and elevation plots
+- Customization
 
 ## Deep Dive
 
@@ -43,15 +43,33 @@ Welcome to the Satellite Pass Predictor documentation!
 - Dependency graph
 - Performance metrics
 
-### 🚀 What's Next?
-**[Improvements](IMPROVEMENTS.md)**
-- 14 recommended features
-- Priority levels
-- Implementation estimates
-- Roadmap
+### 🧮 Mathematical Deep Dive
+**[Prediction Pipeline](deep_dive/prediction_pipeline.md)**
+- TLE orbital elements
+- SGP4 propagation
+- Coordinate transformations
+- Pass detection algorithm
+- ML corrections
 
-### 📚 Migration Guide
-**[Migration](MIGRATION.md)**
+### 🚀 What's Next?
+**[Roadmap](ROADMAP.md)**
+- 14 planned features
+- Priority levels & timelines
+- Implementation estimates
+- Release schedule
+
+## Development
+
+### 🛠️ Contributing
+**[Development Guide](DEVELOPMENT.md)**
+- Setup instructions
+- Testing & code style
+- Pull request process
+
+## Archive
+
+### 📚 Legacy Content
+**[Migration Guide](archive/MIGRATION.md)**
 - From old versions (v1.0-v2.0)
 - Command mapping
 - Data compatibility
@@ -59,16 +77,19 @@ Welcome to the Satellite Pass Predictor documentation!
 ## Documentation Map
 
 ```
-QUICK_START.md      ← Start here if new
+QUICK_START.md                    ← Start here if new
     ↓
-ABOUT.md           ← Understand the project
+../README.md                      ← Project overview
     ↓
-USAGE_GUIDE.md     ← Learn detailed usage
-QUICK_REFERENCE.md ← Command cheat sheet
+USAGE_GUIDE.md                    ← Complete reference + Quick Reference
+VISUALIZATION_GUIDE.md            ← Plotting options
     ↓
-ARCHITECTURE.md    ← Technical deep dive
-IMPROVEMENTS.md    ← What to build next
-MIGRATION.md       ← Coming from old versions
+ARCHITECTURE.md                   ← System design
+deep_dive/prediction_pipeline.md  ← Mathematical details
+    ↓
+ROADMAP.md                        ← Future features
+DEVELOPMENT.md                    ← Contributing guide
+archive/MIGRATION.md              ← Legacy version migration
 ```
 
 ## Quick Links
@@ -76,12 +97,14 @@ MIGRATION.md       ← Coming from old versions
 | Need | Read |
 |------|------|
 | Get running fast | [Quick Start](QUICK_START.md) |
-| Understand project | [About](ABOUT.md) |
+| Understand project | [Root README](../README.md) |
 | Command reference | [Usage Guide](USAGE_GUIDE.md) |
-| Command examples | [Quick Reference](QUICK_REFERENCE.md) |
+| Visual guides | [Visualization Guide](VISUALIZATION_GUIDE.md) |
 | Technical details | [Architecture](ARCHITECTURE.md) |
-| Feature ideas | [Improvements](IMPROVEMENTS.md) |
-| From old version | [Migration](MIGRATION.md) |
+| Math deep dive | [Prediction Pipeline](deep_dive/prediction_pipeline.md) |
+| Feature roadmap | [Roadmap](ROADMAP.md) |
+| Contributing | [Development](DEVELOPMENT.md) |
+| From old version | [Migration](archive/MIGRATION.md) |
 
 ## Common Questions
 
@@ -89,24 +112,24 @@ MIGRATION.md       ← Coming from old versions
 A: `python main.py --tle data/tle_leo/AO-91.txt` → See [Quick Start](QUICK_START.md)
 
 **Q: What does this project do?**  
-A: Predicts when satellites are visible → See [About](ABOUT.md)
+A: Predicts when satellites are visible → See [Root README](../README.md)
 
 **Q: What are all the options?**  
 A: See [Usage Guide](USAGE_GUIDE.md)
 
-**Q: Can I see examples?**  
-A: Yes → See [Quick Reference](QUICK_REFERENCE.md)
+**Q: How does the prediction algorithm work?**  
+A: See [Prediction Pipeline](deep_dive/prediction_pipeline.md)
+
+**Q: What features are planned?**  
+A: See [Roadmap](ROADMAP.md)
 
 **Q: I used an old version, how do I migrate?**  
-A: See [Migration](MIGRATION.md)
-
-**Q: What features should we add?**  
-A: See [Improvements](IMPROVEMENTS.md)
+A: See [Migration](archive/MIGRATION.md)
 
 ---
 
 **New here?** Start with [Quick Start](QUICK_START.md)
 
-**Need help?** Check [About](ABOUT.md) or [Usage Guide](USAGE_GUIDE.md)
+**Need help?** Check [Root README](../README.md) or [Usage Guide](USAGE_GUIDE.md)
 
 **Want to contribute?** See [Improvements](IMPROVEMENTS.md)
