@@ -22,7 +22,8 @@ from src.core import (
 )
 from src.visualization import (
     plot_elevation_matplotlib, plot_elevation_plotly,
-    plot_ground_track_matplotlib, plot_ground_track_plotly
+    plot_ground_track_matplotlib, plot_ground_track_plotly,
+    plot_3d_orbit_plotly
 )
 
 
@@ -57,6 +58,9 @@ Examples:
 
   # All features combined
   python main.py --tle data/tle_leo/AO-91.txt --plot both --ai-correct --model models/residual_model.pt --analyze-deviation
+
+  # 3D visualization
+  python main.py --tle data/tle_leo/AO-91.txt --plot plotly3d
         """)
 
     # Input/output
@@ -75,8 +79,8 @@ Examples:
     p.add_argument("--start-utc", type=str, default=None, help="Start time ISO format (default: now)")
 
     # Visualization options
-    p.add_argument("--plot", type=str, choices=["none", "matplotlib", "plotly", "both"],
-                   default=DEFAULT_PLOT_TYPE, help="Visualization type")
+    p.add_argument("--plot", type=str, choices=["none", "matplotlib", "plotly", "plotly3d", "both", "all"],
+                   default=DEFAULT_PLOT_TYPE, help="Visualization type (plotly3d for 3D, all for 2D+3D)")
 
     # Analysis options
     p.add_argument("--analyze-deviation", action="store_true", help="Analyze TLE accuracy (synthetic deviation)")
@@ -305,8 +309,18 @@ def main():
     if args.plot != "none":
         print(f"\n[5/5] Generating visualizations ({args.plot})...")
         ts_suffix = start_utc.strftime("%Y%m%dT%H%M%SZ")
+
+        if args.plot in ("plotly3d", "all"):
+            # Find visible indices for highlighting
+            visible_indices = [i for i, el in enumerate(elevations) if el > args.threshold]
+
+            p3d_path = os.path.join(args.outdir, f"orbit_3d_{ts_suffix}.html")
+            plot_3d_orbit_plotly(ecef_series, p3d_path,
+                                 station_lat=args.lat, station_lon=args.lon,
+                                 visible_indices=visible_indices)
+            print(f"  ✓ Saved: {p3d_path}")
         
-        if args.plot in ("matplotlib", "both"):
+        if args.plot in ("matplotlib", "both", "all"):
             gt_path = os.path.join(args.outdir, f"ground_track_mpl_{ts_suffix}.png")
             ev_path = os.path.join(args.outdir, f"elevation_mpl_{ts_suffix}.png")
             plot_ground_track_matplotlib(times, ecef_series, gt_path,
@@ -316,7 +330,7 @@ def main():
             print(f"  ✓ Saved: {gt_path}")
             print(f"  ✓ Saved: {ev_path}")
         
-        if args.plot in ("plotly", "both"):
+        if args.plot in ("plotly", "both", "all"):
             gt_path = os.path.join(args.outdir, f"ground_track_plotly_{ts_suffix}.html")
             ev_path = os.path.join(args.outdir, f"elevation_plotly_{ts_suffix}.html")
             plot_ground_track_plotly(times, ecef_series, gt_path,
