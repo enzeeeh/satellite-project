@@ -49,3 +49,8 @@ Thumbs.db
 
 # v1_1 visualization outputs
 v1_1_visualization/outputs/
+
+# Generated run outputs (plots, pass JSON results)
+outputs/*.png
+outputs/*.json
+outputs/*.html
