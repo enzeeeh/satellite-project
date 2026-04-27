@@ -11,6 +11,7 @@ Single entry point supporting:
 from __future__ import annotations
 import argparse
 import os
+import sys
 import json
 from datetime import datetime, timedelta, timezone
 from typing import List, Tuple, Dict, Any
@@ -206,9 +207,223 @@ def create_output_metadata(
     }
 
 
+def _discover_tle_files() -> List[Path]:
+    """Find all .txt TLE files under data/."""
+    data_dir = Path("data")
+    if not data_dir.exists():
+        return []
+    return sorted(data_dir.rglob("*.txt"))
+
+
+def _prompt(prompt_text: str, default: str = "") -> str:
+    """Print a prompt and return stripped input, falling back to default."""
+    suffix = f" [{default}]" if default else ""
+    raw = input(f"  {prompt_text}{suffix}: ").strip()
+    return raw if raw else default
+
+
+def _prompt_int(prompt_text: str, default: int, min_val: int = 1, max_val: int = 9999) -> int:
+    """Prompt for an integer within range."""
+    while True:
+        raw = _prompt(prompt_text, str(default))
+        try:
+            val = int(raw)
+            if min_val <= val <= max_val:
+                return val
+            print(f"    ⚠  Please enter a number between {min_val} and {max_val}.")
+        except ValueError:
+            print("    ⚠  That doesn't look like a number, try again.")
+
+
+def _prompt_float(prompt_text: str, default: float, min_val: float = None, max_val: float = None) -> float:
+    """Prompt for a float, optionally bounded."""
+    while True:
+        raw = _prompt(prompt_text, str(default))
+        try:
+            val = float(raw)
+            if min_val is not None and val < min_val:
+                print(f"    ⚠  Minimum value is {min_val}.")
+                continue
+            if max_val is not None and val > max_val:
+                print(f"    ⚠  Maximum value is {max_val}.")
+                continue
+            return val
+        except ValueError:
+            print("    ⚠  That doesn't look like a number, try again.")
+
+
+def _choose_from_menu(title: str, options: List[str], default_idx: int = 0) -> int:
+    """Display a numbered menu and return the chosen 0-based index."""
+    print(f"\n  {title}")
+    for i, opt in enumerate(options, 1):
+        marker = "●" if i - 1 == default_idx else " "
+        print(f"  {marker} {i}. {opt}")
+    while True:
+        raw = _prompt(f"Enter number (1-{len(options)})", str(default_idx + 1))
+        try:
+            idx = int(raw) - 1
+            if 0 <= idx < len(options):
+                return idx
+            print(f"    ⚠  Please choose between 1 and {len(options)}.")
+        except ValueError:
+            print("    ⚠  Please enter a number.")
+
+
+# Ground station presets (name, lat, lon, alt_m)
+_GS_PRESETS = [
+    ("Boulder, CO, USA",          40.00, -105.00, 1600),
+    ("San Francisco, CA, USA",    37.77, -122.41,  100),
+    ("London, UK",                51.51,   -0.13,   20),
+    ("Sydney, Australia",        -33.87,  151.21,   50),
+    ("Tokyo, Japan",              35.68,  139.69,   30),
+    ("Nairobi, Kenya",            -1.29,   36.82, 1795),
+    ("Enter custom location",     None,    None,  None),
+]
+
+
+def interactive_mode() -> argparse.Namespace:
+    """Run interactive step-by-step wizard and return a populated Namespace.
+
+    Returns the same Namespace that parse_args() would return so the rest
+    of main() works unchanged.
+    """
+    print("\n" + "═" * 70)
+    print("  SATELLITE PASS PREDICTOR  ·  Interactive Mode")
+    print("  (Run  python main.py --help  for the non-interactive CLI)")
+    print("═" * 70)
+
+    # ── STEP 1 : Choose satellite ─────────────────────────────────────────
+    print("\n┌─ STEP 1 of 5 ─ Choose a satellite ─────────────────────────────┐")
+    tle_files = _discover_tle_files()
+    if not tle_files:
+        print("  ✗  No TLE files found under data/  – exiting.")
+        sys.exit(1)
+
+    tle_labels = [str(f) for f in tle_files]
+    chosen_tle_idx = _choose_from_menu("Available TLE files:", tle_labels, default_idx=0)
+    tle_path = str(tle_files[chosen_tle_idx])
+
+    # Preview the satellite name
+    try:
+        sat_name_preview, _, _ = load_tle(tle_path)
+        print(f"  ✓  Selected: {sat_name_preview}  ({tle_path})")
+    except Exception as e:
+        print(f"  ✗  Could not read TLE: {e}")
+        sys.exit(1)
+
+    # ── STEP 2 : Ground station ───────────────────────────────────────────
+    print("\n┌─ STEP 2 of 5 ─ Ground station (your location) ────────────────┐")
+    gs_labels = [f"{name}  ({lat}°, {lon}°)" if lat is not None else name
+                 for name, lat, lon, _ in _GS_PRESETS]
+    gs_idx = _choose_from_menu("Choose a preset or enter custom:", gs_labels, default_idx=0)
+
+    preset = _GS_PRESETS[gs_idx]
+    if preset[1] is None:  # custom
+        lat  = _prompt_float("Latitude  (°, positive = North)", 40.0, -90.0,  90.0)
+        lon  = _prompt_float("Longitude (°, positive = East)", -105.0, -180.0, 180.0)
+        alt  = _prompt_float("Altitude  (metres above sea level)", 0.0, 0.0)
+    else:
+        lat, lon, alt = preset[1], preset[2], preset[3]
+        print(f"  ✓  Station: {preset[0]}  →  {lat}°, {lon}°, {alt} m")
+
+    # ── STEP 3 : Prediction window ─────────────────────────────────────────
+    print("\n┌─ STEP 3 of 5 ─ Prediction window ──────────────────────────────┐")
+    hours = _prompt_float("Prediction duration (hours, e.g. 24 or 48)", 24.0, 1.0, 720.0)
+
+    _step_map = {0: 10.0, 1: 30.0, 2: 60.0, 3: 120.0}
+    step_sec = _step_map[_choose_from_menu(
+        "Propagation step size:",
+        ["10 seconds  (highest accuracy, slower)",
+         "30 seconds  (recommended)",
+         "60 seconds  (fast, slightly lower accuracy)",
+         "120 seconds (very fast, rough)"],
+        default_idx=1,
+    )]
+
+    threshold = _prompt_float("Minimum elevation threshold (°, typical = 10)", 10.0, 0.0, 90.0)
+    print(f"  ✓  Window: next {hours:.0f}h  |  step: {step_sec:.0f}s  |  threshold: {threshold}°")
+
+    # ── STEP 4 : Visualization ─────────────────────────────────────────────
+    print("\n┌─ STEP 4 of 5 ─ Visualization ──────────────────────────────────┐")
+    plot_idx = _choose_from_menu(
+        "Generate plots?",
+        ["No plots  (text + JSON output only)",
+         "Matplotlib  (PNG files saved to outputs/)",
+         "Plotly      (interactive HTML files saved to outputs/)",
+         "Both        (PNG + HTML)"],
+        default_idx=1,
+    )
+    plot_map = {0: "none", 1: "matplotlib", 2: "plotly", 3: "both"}
+    plot_choice = plot_map[plot_idx]
+    if plot_choice != "none":
+        print(f"  ✓  Plots: {plot_choice}  →  saved to outputs/")
+
+    # ── STEP 5 : AI correction ────────────────────────────────────────────
+    print("\n┌─ STEP 5 of 5 ─ AI residual correction ─────────────────────────┐")
+    model_path = Path("models/residual_model.pt")
+    ai_correct = False
+    model_str  = None
+
+    if model_path.exists():
+        ai_idx = _choose_from_menu(
+            f"Apply ML correction? (trained model found at {model_path})",
+            ["No   – use raw SGP4 predictions",
+             "Yes  – apply neural-net residual correction"],
+            default_idx=0,
+        )
+        ai_correct = ai_idx == 1
+        if ai_correct:
+            model_str = str(model_path)
+            print(f"  ✓  AI correction enabled using {model_str}")
+    else:
+        print(f"  ℹ   No trained model found at {model_path}  – skipping AI correction.")
+
+    # ── CONFIRMATION ──────────────────────────────────────────────────────
+    print("\n" + "─" * 70)
+    print("  SUMMARY – about to run with these settings:")
+    print(f"    Satellite  :  {sat_name_preview}  ({tle_path})")
+    print(f"    Station    :  lat={lat}°  lon={lon}°  alt={alt}m")
+    print(f"    Window     :  {hours:.0f}h  |  step={step_sec:.0f}s  |  threshold={threshold}°")
+    print(f"    Plots      :  {plot_choice}")
+    print(f"    AI correct :  {'yes' if ai_correct else 'no'}")
+    print("─" * 70)
+
+    confirm = _prompt("Press ENTER to run, or type 'q' to quit", "")
+    if confirm.lower() == "q":
+        print("  Aborted.")
+        sys.exit(0)
+
+    # Build a Namespace that matches what parse_args() would return
+    ns = argparse.Namespace(
+        tle=tle_path,
+        outdir="outputs",
+        lat=lat,
+        lon=lon,
+        alt=alt,
+        threshold=threshold,
+        hours=hours,
+        step=step_sec,
+        start_utc=None,
+        plot=plot_choice,
+        analyze_deviation=False,
+        ai_correct=ai_correct,
+        model=model_str,
+        json_output=True,
+    )
+    return ns
+
+
 def main():
-    """Main entry point."""
-    args = parse_args()
+    """Main entry point.
+
+    Launches the interactive wizard when no arguments are passed,
+    otherwise falls through to the standard CLI parser.
+    """
+    if len(sys.argv) == 1:
+        args = interactive_mode()
+    else:
+        args = parse_args()
+
     os.makedirs(args.outdir, exist_ok=True)
 
     print("\n" + "="*70)
