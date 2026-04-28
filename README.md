@@ -71,31 +71,70 @@ pip install -r requirements.txt
 
 ## Example Output
 
-**Command**:
+**Interactive wizard** (no flags needed):
 ```bash
-python main.py --tle data/tle_leo/AO-91.txt --plot matplotlib
+python main.py
 ```
 
-**Console Output**:
-```
-PASS #1 over Boulder, CO
-Rise (AOS):     2025-12-26 12:30:15 UTC @ 10° elevation
-Peak (TCA):     2025-12-26 12:35:22 UTC @ 45° elevation
-Set (LOS):      2025-12-26 12:40:18 UTC @ 5° elevation
-Duration:       10 minutes
-Quality:        ⭐⭐ Good
+**Or direct CLI**:
+```bash
+python main.py --tle data/tle_leo/AO-91.txt --lat 40 --lon -105 --alt 1600 --hours 24 --plot matplotlib
 ```
 
-**Generated Files**:
-- 📄 `outputs/passes_TIMESTAMP.json` - Structured data
-- 📊 `outputs/elevation_plot.png` - Elevation vs time graph
-- 🌍 `outputs/ground_track.png` - Satellite path on map
+**Console output** (AO-91 over Boulder, CO — 24 h window):
+```
+======================================================================
+UNIFIED SATELLITE PASS PREDICTOR
+======================================================================
+
+[1/5] Loading TLE from data/tle_leo/AO-91.txt...
+  ✓ Loaded: AO-91
+
+[2/5] Setting up ground station...
+  ✓ Location: 40.0°N, -105.0°E, 1600m
+  ✓ Time samples: 2881 (30.0s step)
+
+[3/5] Propagating satellite...
+  ✓ Computed 2881 elevation samples
+
+[4/5] Detecting passes...
+  ✓ Found 4 passes above 10.0° threshold
+    Pass 1: 2026-04-27 07:14:14 @ 38.3° (7.5 min)
+    Pass 2: 2026-04-27 08:46:14 @ 16.3° (5.1 min)
+    Pass 3: 2026-04-27 17:43:44 @ 12.6° (3.2 min)
+    Pass 4: 2026-04-27 19:16:14 @ 38.9° (6.7 min)
+
+[5/5] Generating visualizations (matplotlib)...
+  ✓ Saved: outputs/ground_track_mpl_....png
+  ✓ Saved: outputs/elevation_mpl_....png
+
+  ✓ JSON output: outputs/passes_....json
+```
+
+**JSON pass record**:
+```json
+{
+  "pass_number": 1,
+  "aos_time": "2026-04-27T07:10:20+00:00",
+  "tca_time": "2026-04-27T07:14:14+00:00",
+  "los_time": "2026-04-27T07:17:48+00:00",
+  "max_elevation_deg": 38.3,
+  "duration_minutes": 7.5,
+  "prediction_type": "basic"
+}
+```
+
+**Generated files** (saved to `outputs/`, git-ignored):
+- 📄 `passes_<timestamp>.json` — Structured pass data
+- 📊 `elevation_mpl_<timestamp>.png` — Elevation vs time curve
+- 🌍 `ground_track_mpl_<timestamp>.png` — Satellite path on world map
 
 ## Documentation
 
 ### Getting Started
 - **[Quick Start Guide](docs/QUICK_START.md)** - Installation, first run, basic usage (5 min read)
 - **[Usage Guide](docs/USAGE_GUIDE.md)** - Complete reference for all CLI options and workflows
+- **[FAQ](docs/FAQ.md)** - Common questions on physics, data, ML, and testing
 
 ### Technical Details
 - **[Architecture](docs/ARCHITECTURE.md)** - How the system works (modules, data flow)
