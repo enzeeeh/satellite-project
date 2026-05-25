@@ -1,251 +1,164 @@
 # Satellite Pass Predictor
 
-**Predict when satellites are visible from your location** - simple, accurate, and flexible.
+**Predict when satellites are visible from your location** — an interactive Streamlit dashboard powered by SGP4 orbital mechanics, live TLE fetching, and AI-generated explanations via Groq.
 
-## What This Project Does
+Enter your ground station coordinates, a NORAD ID (or local TLE file), and a time window. The app predicts every pass (AOS → TCA → LOS), shows pass quality, and explains the results in plain English. Five visualization tabs give you every angle on the satellite's path.
 
-Given a satellite's orbital data (TLE), your ground station coordinates, and a time window, this tool predicts:
-- ⏰ **When** the satellite rises above the horizon (AOS - Acquisition of Signal)
-- 📈 **When** it reaches maximum elevation (TCA - Time of Closest Approach)
-- 📉 **When** it sets below the horizon (LOS - Loss of Signal)
-- 📊 **How high** it gets in the sky (elevation angle)
+---
 
-Perfect for amateur radio operators, astronomers, educators, and space mission planners.
+## How It Works
+
+1. **TLE ingestion** — A Two-Line Element set is fetched from CelesTrak/Space-Track or loaded from a local file. TLEs encode the satellite's orbit as a compact set of Keplerian + drag parameters.
+2. **SGP4 propagation** — The SGP4/SDP4 model integrates the equations of motion at each time step, producing a position vector in the **TEME** (True Equator Mean Equinox) inertial frame.
+3. **Coordinate transforms** — TEME is rotated to **ECEF** (Earth-Centered, Earth-Fixed) using the Greenwich Mean Sidereal Time angle, then converted to geodetic lat/lon/alt.
+4. **Elevation computation** — The vector from the ground station to the satellite is projected into the local **topocentric** frame (South-East-Zenith). The elevation angle is the angle above the local horizon.
+5. **Pass detection** — A sliding window scans the elevation time series for intervals where the angle exceeds the configured threshold. AOS, TCA (peak), and LOS events are recorded for each pass.
+6. **ML correction** — A PyTorch residual network trained on historical SGP4 errors applies a learned correction to elevation estimates, improving accuracy on passes where systematic SGP4 drift is known to occur. Can be toggled on/off in the sidebar.
+7. **Visualization & AI** — Plotly renders all charts client-side. When the AI toggle is on, pass data is summarised into a structured prompt and streamed through Groq's Llama 3.1 API.
+
+---
+
+## Screenshots
+
+### Passes — sorted pass table with quality ratings
+
+![Passes tab](docs/images/tab_passes.png)
+
+### Elevation — angle over time with annotated pass markers
+
+![Elevation tab](docs/images/tab_elevation.png)
+
+### Sky View — polar view of the satellite arc across your sky dome
+
+![Sky View tab](docs/images/tab_skyview.png)
+
+### Ground Track — 2D world map of the orbital footprint
+
+![Ground Track tab](docs/images/tab_groundtrack.png)
+
+### Globe — interactive 3D orthographic globe (fully offline, no tile server)
+
+![Globe tab](docs/images/tab_globe.png)
+
+---
 
 ## Quick Start
 
 ```bash
-# Basic prediction (Boulder, CO by default)
-python main.py --tle data/tle_leo/AO-91.txt
-
-# With visualization
-python main.py --tle data/tle_leo/AO-91.txt --plot matplotlib
-
-# Custom location (London)
-python main.py --tle data/tle_leo/AO-91.txt --lat 51.5 --lon -0.1 --plot matplotlib
-
-# Find only high-quality passes (> 45°)
-python main.py --tle data/tle_leo/AO-91.txt --threshold 45 --hours 168
+pip install -r requirements.txt
+streamlit run app.py
 ```
 
-**Output**: Pass times, elevation angles, optional plots (PNG/HTML), and JSON data.
+Open `http://localhost:8501`. Set your location, enter a NORAD ID, and click **Run Prediction**.
+
+### Command Line (no UI)
+```bash
+python main.py --tle data/tle_leo/AO-91.txt --hours 48 --plot plotly
+```
+
+---
 
 ## Key Features
 
-### Core Capabilities
-- ✅ **Accurate Predictions** - Uses SGP4 model (industry standard for LEO/GEO satellites)
-- ✅ **Multiple Satellites** - Process any TLE data from CelesTrak or Space-Track
-- ✅ **Any Location** - WGS84 geodetic coordinates with altitude support
-- ✅ **Flexible Time Windows** - From minutes to weeks
-- ✅ **JSON Output** - Structured data for automation and integration
+| Feature | Detail |
+|---|---|
+| **SGP4 propagation** | Industry-standard orbital mechanics (pysgp4) |
+| **Live TLE fetching** | CelesTrak (no account) or Space-Track (free account) |
+| **5 visualization tabs** | Passes, Elevation, Sky View, Ground Track, Globe |
+| **AI explanations** | Auto-streamed Groq/Llama commentary per tab |
+| **ML corrections** | Optional PyTorch residual error reduction layer |
+| **CLI support** | Scriptable command-line interface |
 
-### Visualization
-- ✅ **Ground Tracks** - See satellite path on a map (static or interactive)
-- ✅ **Elevation Plots** - Visualize pass quality and timing
-- ✅ **Dual Modes** - Matplotlib (PNG) or Plotly (HTML)
+---
 
-### Advanced
-- ✅ **ML Enhancements** - Optional neural network for residual corrections
-- ✅ **Analysis Tools** - Compare TLE accuracy across epochs
-- ✅ **Flexible CLI** - Mix and match features with command-line flags
+## Setup for AI Explanations (optional)
 
-## Installation
-
-### Prerequisites
-- Python 3.10 or higher
-
-### Install Dependencies
-```bash
-# Core (required)
-pip install sgp4 numpy
-
-# Visualization (optional)
-pip install matplotlib plotly
-
-# ML features (optional)
-pip install torch
-
-# Or install all at once
-pip install -r requirements.txt
+Create a `.env` file:
 ```
-
-## Example Output
-
-**Interactive wizard** (no flags needed):
-```bash
-python main.py
+GROQ_API_KEY=your_key_here
 ```
+Get a free key at [console.groq.com](https://console.groq.com). Without it the explanation toggle simply has nothing to show.
 
-**Or direct CLI**:
-```bash
-python main.py --tle data/tle_leo/AO-91.txt --lat 40 --lon -105 --alt 1600 --hours 24 --plot matplotlib
+## Setup for Space-Track (optional)
+
 ```
-
-**Console output** (AO-91 over Boulder, CO — 24 h window):
+SPACETRACK_USER=your_email@example.com
+SPACETRACK_PASS=your_password
 ```
-======================================================================
-UNIFIED SATELLITE PASS PREDICTOR
-======================================================================
+CelesTrak works without any account.
 
-[1/5] Loading TLE from data/tle_leo/AO-91.txt...
-  ✓ Loaded: AO-91
+---
 
-[2/5] Setting up ground station...
-  ✓ Location: 40.0°N, -105.0°E, 1600m
-  ✓ Time samples: 2881 (30.0s step)
+## Popular NORAD IDs
 
-[3/5] Propagating satellite...
-  ✓ Computed 2881 elevation samples
+| Satellite | NORAD ID |
+|---|---|
+| ISS | 25544 |
+| AO-91 (Fox-1B) | 43017 |
+| AO-95 (Fox-1Cliff) | 43770 |
+| Hubble Space Telescope | 20580 |
+| NOAA-19 | 33591 |
 
-[4/5] Detecting passes...
-  ✓ Found 4 passes above 10.0° threshold
-    Pass 1: 2026-04-27 07:14:14 @ 38.3° (7.5 min)
-    Pass 2: 2026-04-27 08:46:14 @ 16.3° (5.1 min)
-    Pass 3: 2026-04-27 17:43:44 @ 12.6° (3.2 min)
-    Pass 4: 2026-04-27 19:16:14 @ 38.9° (6.7 min)
-
-[5/5] Generating visualizations (matplotlib)...
-  ✓ Saved: outputs/ground_track_mpl_....png
-  ✓ Saved: outputs/elevation_mpl_....png
-
-  ✓ JSON output: outputs/passes_....json
-```
-
-**JSON pass record**:
-```json
-{
-  "pass_number": 1,
-  "aos_time": "2026-04-27T07:10:20+00:00",
-  "tca_time": "2026-04-27T07:14:14+00:00",
-  "los_time": "2026-04-27T07:17:48+00:00",
-  "max_elevation_deg": 38.3,
-  "duration_minutes": 7.5,
-  "prediction_type": "basic"
-}
-```
-
-**Generated files** (saved to `outputs/`, git-ignored):
-- 📄 `passes_<timestamp>.json` — Structured pass data
-- 📊 `elevation_mpl_<timestamp>.png` — Elevation vs time curve
-- 🌍 `ground_track_mpl_<timestamp>.png` — Satellite path on world map
-
-## Documentation
-
-### Getting Started
-- **[Quick Start Guide](docs/QUICK_START.md)** - Installation, first run, basic usage (5 min read)
-- **[Usage Guide](docs/USAGE_GUIDE.md)** - Complete reference for all CLI options and workflows
-- **[FAQ](docs/FAQ.md)** - Common questions on physics, data, ML, and testing
-
-### Technical Details
-- **[Architecture](docs/ARCHITECTURE.md)** - How the system works (modules, data flow)
-- **[Prediction Pipeline](docs/deep_dive/prediction_pipeline.md)** - Mathematical deep dive (SGP4, coordinate transforms, ML corrections)
-- **[Visualization Guide](docs/VISUALIZATION_GUIDE.md)** - Plotting options and customization
-
-### Development
-- **[Development Guide](docs/DEVELOPMENT.md)** - Setup for contributors, testing, code style
-- **[Roadmap](docs/ROADMAP.md)** - Future features and planned improvements
-
-### Additional Resources
-- **[Migration Archive](docs/archive/MIGRATION.md)** - Legacy version upgrade notes
-
-## Use Cases
-
-### 📡 Amateur Radio Operators
-Track satellites like AO-91 and AO-95 to plan communication windows.
-```bash
-python main.py --tle data/tle_leo/AO-91.txt --hours 168 --threshold 45
-```
-
-### 🔭 Astronomers
-Plan ISS or Hubble observation sessions with precise timing.
-```bash
-python main.py --tle data/tle_leo/ISS.txt --hours 168 --plot plotly
-```
-
-### 🛰️ Mission Planners
-Predict coverage for multiple ground stations (JPL, Goddard, Stanford).
-```bash
-python main.py --tle data/tle.txt --lat 34.2 --lon -118.2  # JPL
-python main.py --tle data/tle.txt --lat 38.8 --lon -77.0   # Goddard
-```
-
-### 🎓 Students & Educators
-Learn orbital mechanics, coordinate transformations, and SGP4 with real data.
+---
 
 ## Technology Stack
 
-| Component | Technology | Purpose |
-|-----------|-----------|---------|
-| **Orbital mechanics** | SGP4 (pysgp4) | Predict satellite positions from TLE |
-| **Math/Science** | NumPy | Vector operations, coordinate transforms |
-| **Plotting** | Matplotlib + Plotly | Static and interactive visualizations |
-| **ML** | PyTorch | Optional neural network corrections |
-| **Testing** | Pytest | Automated validation and CI/CD |
+| Component | Library | Purpose |
+|---|---|---|
+| Orbital mechanics | sgp4 | Predict satellite positions from TLE |
+| Dashboard | Streamlit | Interactive browser UI |
+| Charts | Plotly | Elevation, sky polar, ground track, globe |
+| AI explanations | Groq + Llama 3.1 | Natural-language pass summaries |
+| ML corrections | PyTorch | Optional neural network residual layer |
+| Testing | Pytest | Automated test suite |
+
+---
 
 ## Project Structure
 
 ```
 satellite-project/
-├── main.py                     Unified CLI entry point
+├── app.py                      Streamlit dashboard entry point
+├── main.py                     CLI entry point
 ├── src/
-│   ├── core/                   Physical models (SGP4, coordinates)
-│   ├── visualization/          Plotting utilities
-│   └── ml/                     Machine learning enhancements
+│   ├── core/                   Physics engine (SGP4, coordinates, TLE fetcher)
+│   ├── visualization/          Elevation, ground track, sky polar, globe (Plotly)
+│   ├── ml/                     Neural network residual correction
+│   └── llm_explainer.py        Groq streaming AI explanation builder
 ├── data/
-│   ├── tle_leo/                LEO satellite TLEs (AO-91, AO-95, etc.)
-│   └── tle_geo/                GEO satellite TLEs
-├── models/                     Pre-trained ML models
-├── outputs/                    Generated results (JSON, plots)
-├── docs/                       Documentation (guides, references)
+│   ├── tle_leo/                Local LEO TLEs (AO-91, AO-95)
+│   └── tle_geo/                Local GEO TLEs
+├── models/                     Pre-trained ML model weights
+├── outputs/                    Generated JSON pass reports (git-ignored)
+├── docs/                       Technical documentation and screenshots
 └── tests/                      Automated test suite
 ```
 
-## Accuracy & Limitations
+---
 
-### ✅ Accurate For:
-- Recent TLEs (< 14 days old)
-- LEO and GEO satellites
-- Predictions within a few weeks
-- Elevation angles > 5° above horizon
+## Accuracy Notes
 
-### ⚠️ Not Suitable For:
-- Very old TLEs (accuracy degrades rapidly after 30 days)
-- Highly elliptical or specialized orbits
-- High-precision requirements (~km-level accuracy)
-- Real-time tracking without TLE updates
-
-### Simplifications:
-- Uses GMST for coordinate rotation (ignores polar motion, UT1-UTC)
-- Simplified atmospheric refraction model
-- No terrain elevation or obstruction modeling
-
-For high-precision missions, integrate with Astropy or NASA SPICE toolkit.
+- Use TLEs less than 14 days old for reliable predictions
+- GMST rotation used without polar motion correction (suitable for most amateur use cases)
+- No terrain or atmospheric obstruction modeling
+- For high-precision work, consider Astropy or NASA SPICE
 
 ## Data Sources
 
-- **TLE Data**: [CelesTrak](https://celestrak.org/), [Space-Track](https://www.space-track.org/)
-- **Satellite Info**: [N2YO](https://www.n2yo.com/), [Wikipedia](https://en.wikipedia.org/wiki/List_of_active_satellites)
-
-## Contributing & Development
-
-See [DEVELOPMENT.md](docs/DEVELOPMENT.md) for:
-- Setting up development environment
-- Running tests (`pytest`)
-- Code style guidelines
-- Submitting pull requests
-
-## Release Notes
-
-- **[CHANGELOG.md](CHANGELOG.md)** - Version history and changes
-- **[RELEASE.md](RELEASE.md)** - Release process documentation
-
-## Support
-
-For issues, questions, or suggestions:
-1. Check the documentation in `docs/`
-2. Review [QUICK_START.md](docs/QUICK_START.md) troubleshooting section
-3. Open an issue on GitHub with detailed error messages and context
+- [CelesTrak](https://celestrak.org/) — Free, no account required
+- [Space-Track](https://www.space-track.org/) — Full catalog, free account required
 
 ---
 
-**Ready to predict satellite passes?** → Start with the [Quick Start Guide](docs/QUICK_START.md)
+## Documentation
+
+- [Architecture](docs/ARCHITECTURE.md) — Module design and data flow
+- [Prediction Pipeline](docs/deep_dive/prediction_pipeline.md) — SGP4 math, coordinate transforms, ML corrections
+- [FAQ](docs/FAQ.md) — Physics, data sources, ML, and testing questions
+- [Development Guide](docs/DEVELOPMENT.md) — Contributing, testing, code style
+- [Roadmap](docs/ROADMAP.md) — Planned features
+
+## Contributing
+
+See [DEVELOPMENT.md](docs/DEVELOPMENT.md) for setup, testing, and code style guidelines.
+

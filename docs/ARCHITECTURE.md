@@ -1,162 +1,78 @@
 # Architecture Guide
 
-Technical deep dive into the system design.
-
 ## System Overview
 
-### Old System (4 Versions)
 ```
-v1.0 (basic) ──┐
-v1.1 (viz)   ──┤
-v1.2 (analysis)┤──> Shared satcore library
-v2.0 (ML)    ──┘
-
-Problem: 90% code duplication, confusing structure
+app.py          Streamlit dashboard (primary interface)
+main.py         CLI entry point
+├── src/core/
+│   ├── tle_loader.py       Parse local TLE files
+│   ├── tle_fetcher.py      Fetch live TLEs from CelesTrak / Space-Track
+│   ├── propagator.py       SGP4 propagation, coordinate transforms
+│   ├── ground_station.py   WGS84 geometry, elevation, azimuth
+│   └── pass_detector.py    Threshold-based AOS/TCA/LOS detection
+├── src/visualization/
+│   ├── elevation_plot.py   Elevation vs time (Matplotlib + Plotly)
+│   ├── ground_track.py     Ground track map (Matplotlib + Plotly)
+│   ├── sky_plot.py         Polar sky view (Plotly)
+│   └── globe_track.py      3D globe (Pydeck)
+└── src/ml/
+    ├── model.py            PyTorch residual predictor network
+    ├── train.py            Training pipeline
+    └── predict.py          Inference and correction application
 ```
-
-### New System (Unified)
-```
-main.py (entry point)
-├── src/core/ (always loaded)
-│   ├── tle_loader.py
-│   ├── propagator.py
-│   ├── ground_station.py
-│   └── pass_detector.py
-├── src/visualization/ (if --plot)
-│   ├── elevation_plot.py
-│   └── ground_track.py
-└── src/ml/ (if --ai-correct)
-    ├── model.py
-    ├── train.py
-    └── predict.py
-
-Benefit: 0% duplication, clear separation of concerns
-```
-
----
-
-## Module Hierarchy
-
-### Layer 1: Physics Engine (src/core/)
-**Always loaded**, no external dependencies (except sgp4)
-
-- `tle_loader.py` - Parse Two-Line Element files
-- `propagator.py` - SGP4 orbital propagation, coordinate transforms
-- `ground_station.py` - Observer geometry, WGS84→ECEF→ENU
-- `pass_detector.py` - Threshold-based pass detection
-
-**Responsibility**: Accurate physics calculations
-
----
-
-### Layer 2: Entry Point (main.py)
-**Orchestrates everything**
-
-- Parse command-line arguments
-- Load TLE and configure ground station
-- Run propagation and pass detection
-- Conditionally load visualization/ML modules
-- Output results
-
-**Responsibility**: User interface and workflow
-
----
-
-### Layer 3: Optional Features
-**Only loaded if needed**
-
-#### Visualization (src/visualization/)
-- `elevation_plot.py` - matplotlib and plotly elevation graphs
-- `ground_track.py` - matplotlib and plotly ground track maps
-
-**Responsibility**: Create visualizations
-
-**Dependencies**: matplotlib, plotly (optional)
-
-#### ML (src/ml/)
-- `model.py` - PyTorch neural network
-- `train.py` - Training pipeline
-- `predict.py` - Inference and residual corrections
-
-**Responsibility**: ML enhancements
-
-**Dependencies**: torch, numpy (optional)
-
----
 
 ## Data Flow
 
 ```
-1. User runs: python main.py --tle data/tle.txt --plot matplotlib
-
-2. main.py parses arguments
-   ↓
-3. Load TLE with tle_loader.py
-   ↓
-4. Create GroundStation (ground_station.py)
-   ↓
-5. Propagate orbit with propagator.py
-   - For each time step:
-     - propagate_teme() → TEME position
-     - gmst_angle() → Earth rotation
-     - teme_to_ecef() → ECEF coordinates
-     - gs.elevation_deg() → Local elevation angle
-   ↓
-6. Detect passes with pass_detector.py
-   - Threshold crossing detection
-   - Interpolate AOS/LOS times
-   ↓
-7. If --plot: Call visualization
-   - plot_elevation_matplotlib()
-   - plot_ground_track_matplotlib()
-   ↓
-8. If --ai-correct: Apply ML corrections
-   - Load model
-   - Predict residuals
-   - Apply corrections to positions
-   ↓
-9. Output results
-   - Console summary
-   - JSON file (optional)
-   - Plot files (if requested)
+User input (NORAD ID or local TLE file)
+  ↓
+TLE fetch (CelesTrak / Space-Track) or local load
+  ↓
+SGP4 propagation — for each time step:
+  propagate_teme()  →  TEME position
+  gmst_angle()      →  Earth rotation angle
+  teme_to_ecef()    →  ECEF coordinates
+  elevation_azimuth_deg()  →  local sky angles
+  ↓
+Pass detection — threshold crossing state machine
+  →  AOS / TCA / LOS events per pass
+  ↓
+Optional ML correction — neural network residual layer
+  ↓
+Visualizations (elevation, sky polar, ground track, globe)
+  ↓
+Output: pass table in Streamlit, or JSON + plots via CLI
 ```
-
----
 
 ## Coordinate Systems
 
 ```
 TEME (True Equator Mean Equinox)
-  ↓ [GMST rotation + Z-axis]
+  ↓  GMST Z-axis rotation
 ECEF (Earth-Centered Earth-Fixed)
-  ↓ [Ground station transform]
+  ↓  Ground station ENU transform
 ENU (East-North-Up)
-  ↓ [Conversion to angles]
-Elevation & Azimuth (degrees)
+  ↓  atan2
+Elevation and Azimuth (degrees)
 ```
-
-**WGS84 Geodetic ↔ ECEF**: Conversion in ground_station.py
-
----
 
 ## Pass Detection Algorithm
 
-```
-For each time sample:
-1. Get satellite elevation
-2. Track if above/below threshold
+A simple state machine over elevation samples:
 
-State machine:
+```
 NOT_IN_PASS:
-  - If elevation crosses threshold upward → AOS
-  - Set state = IN_PASS
+  elevation crosses threshold upward  →  record AOS, enter IN_PASS
 
 IN_PASS:
-  - Track maximum elevation
-  - If elevation crosses threshold downward → LOS
-  - Record PassEvent
-  - Set state = NOT_IN_PASS
+  track maximum elevation sample
+  elevation crosses threshold downward  →  record LOS, emit PassEvent
 ```
+
+AOS and LOS times are linearly interpolated between the two samples that straddle the threshold crossing.
+
+
 
 **Edge cases handled**:
 - Passes starting before data window

@@ -467,14 +467,12 @@ def main():
         else:
             try:
                 # Deferred import to avoid torch unless needed
-                from src.ml.predict import ResidualCorrector, apply_correction_to_position
+                from src.ml.predict import ResidualCorrector, apply_correction_to_position, features_from_satrec
 
                 print(f"\n[3a] Applying ML residual corrections using model: {args.model}")
                 corrector = ResidualCorrector(model_path=args.model)
 
-                # Parse static features from TLE line 2
-                mm_rev_day, ecc, inc_deg = _parse_line2_features(line2)
-                # Epoch from line 1
+                # Epoch from line 1 (for time_since_epoch_hours)
                 epoch_dt = _epoch_from_line1(line1)
 
                 corrected_ecef: List[Tuple[float, float, float]] = []
@@ -487,16 +485,10 @@ def main():
                     # Recompute TEME velocity and rotate to ECEF for along-track direction
                     teme_state = propagate_teme(sat, dt)
                     gmst = gmst_angle(dt)
-                    # Rotate TEME velocity into ECEF using same Z-rotation
                     v_ecef = teme_to_ecef(teme_state.v_km_s, gmst)
 
-                    # Predict residual and apply along-track correction
-                    residual_km = corrector.predict_residual(
-                        time_since_epoch_hours=tse_hours,
-                        mean_motion_rev_per_day=mm_rev_day,
-                        eccentricity=ecc,
-                        inclination_deg=inc_deg,
-                    )
+                    # All 6 features extracted from the Satrec object — same formula as training
+                    residual_km = corrector.predict_from_satrec(sat, tse_hours)
                     pos_corr = apply_correction_to_position(pos_ecef, v_ecef, residual_km)
                     corrected_ecef.append(pos_corr)
                     corrected_elevations.append(gs.elevation_deg(pos_corr))

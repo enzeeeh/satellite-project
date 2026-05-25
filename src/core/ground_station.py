@@ -96,3 +96,37 @@ class GroundStation:
         e, n, u = self.enu_from_ecef(sat_ecef_km)
         horiz = math.hypot(e, n)
         return math.degrees(math.atan2(u, horiz))
+
+    def azimuth_deg(self, sat_ecef_km: Tuple[float, float, float]) -> float:
+        """Azimuth angle of satellite in degrees.
+
+        Azimuth is measured clockwise from North (0=North, 90=East,
+        180=South, 270=West).
+
+        Args:
+            sat_ecef_km: Satellite position in ECEF (km).
+
+        Returns:
+            Azimuth angle in degrees [0, 360).
+        """
+        e, n, _ = self.enu_from_ecef(sat_ecef_km)
+        az = math.degrees(math.atan2(e, n))
+        return az % 360.0
+
+    def elevation_azimuth_deg(
+        self, sat_ecef_km: Tuple[float, float, float]
+    ) -> Tuple[float, float]:
+        """Elevation and azimuth of satellite in degrees.
+
+        Args:
+            sat_ecef_km: Satellite position in ECEF (km).
+
+        Returns:
+            (elevation_deg, azimuth_deg) where elevation is positive above
+            horizon and azimuth is clockwise from North in [0, 360).
+        """
+        e, n, u = self.enu_from_ecef(sat_ecef_km)
+        horiz = math.hypot(e, n)
+        el = math.degrees(math.atan2(u, horiz))
+        az = math.degrees(math.atan2(e, n)) % 360.0
+        return el, az

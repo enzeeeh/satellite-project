@@ -44,13 +44,21 @@ htmlcov/
 Thumbs.db
 
 # Env files
+.env
 *.env
 .env.*
 
-# v1_1 visualization outputs
-v1_1_visualization/outputs/
+# Logs and temp files
+*.log
+test_import.txt
 
 # Generated run outputs (plots, pass JSON results)
 outputs/*.png
 outputs/*.json
 outputs/*.html
+
+# TLE cache (fetched live data)
+data/tle_cache/
+
+# Streamlit cache
+.streamlit/

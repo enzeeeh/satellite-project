@@ -158,6 +158,8 @@ def plot_elevation_plotly(times: Sequence[datetime], elevations_deg: Sequence[fl
                       hovermode='x unified', width=1200, height=600,
                       showlegend=True)
     
+    if not out_path:
+        return fig
     try:
         fig.write_image(out_path)
     except Exception:

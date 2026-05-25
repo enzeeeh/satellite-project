@@ -1,62 +1,17 @@
-# Documentation Index
+# Documentation
 
-Welcome to the Satellite Pass Predictor documentation!
+## Guides
 
-## Start Here
+- [Architecture](ARCHITECTURE.md) — Module layout, data flow, system design
+- [Prediction Pipeline](deep_dive/prediction_pipeline.md) — SGP4 math, coordinate transforms, ML corrections
+- [FAQ](FAQ.md) — Physics, data sources, ML, and testing questions
+- [Development Guide](DEVELOPMENT.md) — Contributing, running tests, code style
+- [Roadmap](ROADMAP.md) — Planned features and priorities
 
-### 📖 New to this project?
-**[Quick Start](QUICK_START.md)** (5 min read)
-- Installation
-- First prediction
-- Common tasks
-- Troubleshooting
+## Starting Point
 
-### ❓ What is this project?
-**[Root README](../README.md)** (comprehensive landing page)
-- Overview and features
-- Use cases
-- Technology stack
-- Limitations
+For a general overview, installation steps, and how to run the dashboard, see the [root README](../README.md).
 
-## Learn More
-
-### 🔧 How to use it?
-**[Usage Guide](USAGE_GUIDE.md)** (complete reference)
-- All command-line options
-- Detailed examples
-- Quick Reference cheat sheet
-- Output formats
-- Tips & tricks
-
-### 📊 Visualization
-**[Visualization Guide](VISUALIZATION_GUIDE.md)**
-- Plotting options (Matplotlib, Plotly)
-- Ground tracks and elevation plots
-- Customization
-
-## Deep Dive
-
-### 🏗️ Technical Details
-**[Architecture](ARCHITECTURE.md)**
-- Before/after comparison
-- System design
-- Dependency graph
-- Performance metrics
-
-### 🧮 Mathematical Deep Dive
-**[Prediction Pipeline](deep_dive/prediction_pipeline.md)**
-- TLE orbital elements
-- SGP4 propagation
-- Coordinate transformations
-- Pass detection algorithm
-- ML corrections
-
-### 🚀 What's Next?
-**[Roadmap](ROADMAP.md)**
-- 14 planned features
-- Priority levels & timelines
-- Implementation estimates
-- Release schedule
 
 ## Development
 

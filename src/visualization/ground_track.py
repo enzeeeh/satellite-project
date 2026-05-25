@@ -156,6 +156,8 @@ def plot_ground_track_plotly(times: Sequence[datetime], ecef_series_km: Sequence
                       xaxis_title="Longitude (deg)", yaxis_title="Latitude (deg)",
                       xaxis=dict(range=[-180, 180]), yaxis=dict(range=[-90, 90]),
                       hovermode='closest', width=1000, height=600)
+    if not out_path:
+        return fig
     try:
         fig.write_image(out_path)
     except Exception:
