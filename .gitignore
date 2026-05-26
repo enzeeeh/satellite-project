@@ -60,5 +60,14 @@ outputs/*.html
 # TLE cache (fetched live data)
 data/tle_cache/
 
+# Collected historical position sequences (large, regenerated from Space-Track)
+data/collected/*.csv
+data/collected/*.npy
+data/collected/*.json
+
+# Experiment artifacts (model checkpoints, logs — keep only final models in models/)
+experiments/*/checkpoints/
+experiments/**/runs/
+
 # Streamlit cache
 .streamlit/
