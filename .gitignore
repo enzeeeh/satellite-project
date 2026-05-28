@@ -65,6 +65,15 @@ data/collected/*.csv
 data/collected/*.npy
 data/collected/*.json
 
+# Colab download artifacts that land in notebooks/
+notebooks/*.zip
+notebooks/*.npy
+notebooks/*.csv
+notebooks/*.pt
+notebooks/*.pkl
+notebooks/*.png
+notebooks/*.html
+
 # Experiment artifacts (model checkpoints, logs — keep only final models in models/)
 experiments/*/checkpoints/
 experiments/**/runs/
