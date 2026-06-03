@@ -2,6 +2,101 @@
 
 All notable changes to this project are documented in this file.
 
+---
+
+## ML Training Run Log
+
+Tracks every Colab training run for the ML residual-correction models.  
+All MAE figures are on the held-out **test set** (last 15% by time, ~31k windows).
+
+### Run 4 — Planned (STALE_DAYS = 7)
+
+**Status:** Not yet executed
+
+#### What changed
+| Component | Change | Reason |
+|---|---|---|
+| `NB01` — Config cell | `STALE_DAYS: 3 → 7` | At 3 days, SGP4 error is only ~2–6 km (near-noise). At 7 days, LEO drift grows to ~15–50 km — large enough for ML to learn a meaningful correction. |
+
+#### How to run
+1. Open `notebooks/01_data_exploration.ipynb` on Colab (GPU not needed for NB01).
+2. Run all cells → regenerates `positions_*.csv` with `sgp4_stale_age ≥ 7 days` → download `collected_positions.zip`.
+3. Run `notebooks/02_feature_engineering.ipynb` (upload new zip) → download `dataset.zip`.
+4. Run `notebooks/03_model_training.ipynb` (upload dataset zip, **enable T4 GPU**) → download `.pt` files.
+5. Copy `.pt` files to `data/collected/`, then run `notebooks/04_evaluation.ipynb` locally.
+
+#### Expected improvement
+- SGP4 stale baseline MAE will be ~15–50 km (was 2–6 km).
+- Residuals are large and structured → LSTM/Transformer should beat the baseline.
+- Target: corrected MAE < 10 km at T+60 min.
+
+---
+
+### Run 3 — Completed 2026-06-03 (LSTM hidden_dropout + weight_decay fix)
+
+**Commit:** `be2363e`
+
+#### What changed
+| Component | Change | Reason |
+|---|---|---|
+| `NB03` — `LSTMOrbit` | Added explicit `self.hidden_dropout = nn.Dropout(dropout)` on concatenated hidden states | PyTorch disables internal LSTM dropout when `lstm_layers=1` → no regularisation → overfit instantly |
+| `NB03` — `train_model` | `weight_decay: 1e-4 → 1e-3` | Stronger L2 regularisation |
+| `NB03` — `train_model` | `best_state = deepcopy(model.state_dict())` initialised before loop | Was `None` → `TypeError` crash if no epoch improved val loss |
+
+#### Training results (3rd Colab run)
+| Model | Best Val Loss | Stopped at Epoch |
+|---|---|---|
+| MLP | 0.1507 | 27 (early stop) |
+| LSTM | 0.1349 | 65 (early stop) |
+| Transformer | 0.1334 | 70 (early stop) |
+
+#### Evaluation results — MAE (km)
+| Model | T+10 | T+30 | T+60 | T+120 |
+|---|---|---|---|---|
+| SGP4 stale (3-day) | **6.3** | **6.3** | **6.3** | **6.3** |
+| LSTM | 11.8 | 11.6 | 16.8 | 14.5 |
+| Transformer | 19.5 | 26.7 | 26.8 | 24.7 |
+| MLP | 41.2 | 43.9 | 46.2 | 48.3 |
+
+#### Root-cause analysis
+LSTM improved massively (was 115 km, now 11–16 km) but all models still worse than SGP4.  
+Root cause: `STALE_DAYS=3` → stale baseline only 3 days old → SGP4 errors are 2–6 km (mostly noise). ML has no meaningful residual to learn. Fix scheduled for Run 4.
+
+**TLE-age breakdown at T+60 min:**
+| TLE Age | LSTM | SGP4 stale |
+|---|---|---|
+| < 1 day | 17.0 km | 6.4 km |
+| 1–3 days | 7.0 km | 2.9 km |
+| 3–7 days | — (no data) | — |
+| > 7 days | — (no data) | — |
+
+---
+
+### Run 2 — Completed ~2026-06-02 (NaN filter + residual learning)
+
+#### What changed
+- Switched NB03 from absolute-position targets to residual targets (`y_true − y_SGP4_stale`).
+- Added `valid_mask()` NaN filter in NB02 for windows without a stale baseline.
+- `train_model`: `weight_decay = 1e-4` (too low), `best_state = None` (bug).
+
+#### Evaluation results — MAE at T+60 min
+| Model | MAE |
+|---|---|
+| SGP4 stale | 6.3 km |
+| LSTM | 115 km ← broken (best val at epoch 1, zero hidden_dropout) |
+| MLP | ~37 km |
+| Transformer | 9–21 km |
+
+---
+
+### Run 1 — Crashed ~2026-06-01 (NaN loss)
+
+**Error:** `TypeError: Expected state_dict to be dict-like, got NoneType`  
+**Cause:** Rows with no stale baseline had NaN residuals → NaN loss → `best_state` never set → crash.  
+**Fix applied in Run 2:** `valid_mask()` NaN filter + `best_state = deepcopy(model.state_dict())` initialisation.
+
+---
+
 ## [3.0.0] - December 26, 2025
 
 ### 🎉 Major Changes
