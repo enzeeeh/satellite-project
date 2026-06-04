@@ -9,30 +9,55 @@ All notable changes to this project are documented in this file.
 Tracks every Colab training run for the ML residual-correction models.  
 All MAE figures are on the held-out **test set** (last 15% by time, ~31k windows).
 
-### Run 4 — Planned (STALE_DAYS = 7)
+### Run 4 — Completed 2026-06-04 (STALE_DAYS = 7)
 
-**Status:** Not yet executed
+**Commit:** Pending
 
 #### What changed
 | Component | Change | Reason |
 |---|---|---|
 | `NB01` — Config cell | `STALE_DAYS: 3 → 7` | At 3 days, SGP4 error is only ~2–6 km (near-noise). At 7 days, LEO drift grows to ~15–50 km — large enough for ML to learn a meaningful correction. |
 
-#### How to run
-1. Open `notebooks/01_data_exploration.ipynb` on Colab (GPU not needed for NB01).
-2. Run all cells → regenerates `positions_*.csv` with `sgp4_stale_age ≥ 7 days` → download `collected_positions.zip`.
-3. Run `notebooks/02_feature_engineering.ipynb` (upload new zip) → download `dataset.zip`.
-4. Run `notebooks/03_model_training.ipynb` (upload dataset zip, **enable T4 GPU**) → download `.pt` files.
-5. Copy `.pt` files to `data/collected/`, then run `notebooks/04_evaluation.ipynb` locally.
+#### Training results (4th Colab run, STALE_DAYS=7)
+| Model | Best Val Loss | Stopped at Epoch |
+|---|---|---|
+| MLP | **0.1003** ↓ | 28 (early stop) |
+| LSTM | **0.2425** ↑ | **21** (diverged!) |
+| Transformer | **0.0861** ↓↓ | 44 (early stop) |
 
-#### Expected improvement
-- SGP4 stale baseline MAE will be ~15–50 km (was 2–6 km).
-- Residuals are large and structured → LSTM/Transformer should beat the baseline.
-- Target: corrected MAE < 10 km at T+60 min.
+#### Key findings
+1. **Transformer is now the clear winner** (0.0861, best yet — even better than Run 3)
+2. **MLP improved significantly** (0.1507 → 0.1003, -33%)
+3. **LSTM broke** — validation loss diverged starting at epoch 10 (val jumped to 1.2958), early stopped at epoch 21 with poor 0.2425
+
+**Root cause:** Residuals at 7-day stale are ~10–100x larger than at 3-day stale. LSTM's current architecture (hidden=128, lstm_layers=1) and hyperparams cannot handle the larger signal amplitude. The model is underfitted for this harder task and began overfitting severely.
+
+#### Next action — Run 5
+**Fix LSTM divergence** by increasing capacity or lowering learning rate:
+- **Option A (recommended):** Increase `HIDDEN: 128 → 256` + `LSTM_LAYERS: 1 → 2`
+- **Option B (safe):** Lower `LR: 3e-4 → 1e-4` (slower, more conservative optimization)
 
 ---
 
-### Run 3 — Completed 2026-06-03 (LSTM hidden_dropout + weight_decay fix)
+### Run 5 — Planned (LSTM tuning for STALE_DAYS=7)
+
+**Status:** Not yet executed
+
+#### What will change
+| Component | Change | Reason |
+|---|---|---|
+| `NB03` — Config cell | `HIDDEN: 128 → 256`, `LSTM_LAYERS: 1 → 2` | Larger capacity needed for 10–100x larger residuals. Two layers allow LSTM internal dropout to apply (PyTorch disables it for single-layer LSTMs). |
+| Alternative | `LR: 3e-4 → 1e-4` | More conservative learning rate to prevent divergence. |
+
+#### How to run
+1. Edit NB03 cell 7 (hyperparams): increase `HIDDEN` and `LSTM_LAYERS`.
+2. Run NB03 on Colab with T4 GPU → download new `.pt` files.
+3. Copy to `data/collected/`, run NB04 locally.
+
+#### Expected result
+LSTM should train smoothly to epoch 50+ without divergence. Target: best val loss < 0.15.
+
+---
 
 **Commit:** `be2363e`
 
