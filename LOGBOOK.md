@@ -54,7 +54,8 @@ Newest entry first. (Release-style notes live in `CHANGELOG.md`; this file is th
 
 ### Open items — where we left off
 
-- [ ] **Commit everything** (largest outstanding item — whole refocus is uncommitted).
+- [x] **Commit everything** — done 2026-07-23, pushed to GitHub as `fb8d644` (research/archive),
+      `0c495be` (app rework), `f0fca9e` (notebook + portfolio + logbook).
 - [ ] README screenshots (`docs/images/`) predate the new sidebar + Summary tab → retake.
 - [ ] App currently running locally on :8501 (kill with Task Manager / `taskkill //IM streamlit.exe`).
 
