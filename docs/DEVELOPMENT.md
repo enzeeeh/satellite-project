@@ -22,7 +22,6 @@ pip install -r requirements-test.txt
 
 # Or install incrementally:
 pip install -r requirements.txt     # Core + visualization
-pip install torch                    # For ML module (optional)
 pip install pytest pytest-cov       # For testing
 ```
 
@@ -52,14 +51,9 @@ src/
 │   ├── ground_station.py    (Observer geometry)
 │   └── pass_detector.py     (Pass detection algorithm)
 │
-├── visualization/  ← Plotting modules (safe to modify)
-│   ├── elevation_plot.py    (matplotlib + plotly elevation)
-│   └── ground_track.py      (matplotlib + plotly ground track)
-│
-└── ml/            ← Machine learning (experimental)
-    ├── model.py             (Neural network architecture)
-    ├── train.py             (Training pipeline)
-    └── predict.py           (Inference/corrections)
+└── visualization/  ← Plotting modules (safe to modify)
+    ├── elevation_plot.py    (matplotlib + plotly elevation)
+    └── ground_track.py      (matplotlib + plotly ground track)
 
 tests/
 ├── test_tle_loader.py
@@ -111,8 +105,6 @@ passes = detect_passes(propagate_orbit(), gs)
 # 4. Optional enhancements
 if args.plot:
     plot_elevation(passes)
-if args.ai_correct:
-    correct_with_ml(passes)
 
 # 5. Output
 output_results(passes)
@@ -131,12 +123,6 @@ from src.visualization import plot_elevation_matplotlib
 plot_elevation_matplotlib(passes, gs, 'output.png')
 # Works standalone, no dependencies on main.py
 ```
-
-### ML (src/ml/)
-**Rule**: Experimental. Change freely but:
-- Test on validation set first
-- Don't break existing API
-- Document changes in model.py
 
 ---
 
@@ -391,13 +377,11 @@ stats.print_stats(20)  # Top 20 functions
 1. **TLE loading** - Parsing and validation (~1 ms)
 2. **Propagation loop** - SGP4 calls (~0.1 ms each, ×thousands)
 3. **Visualization** - File I/O (~seconds)
-4. **ML inference** - Neural network forward pass (~1 ms per batch)
 
 ### Optimization Ideas
 1. Vectorize propagation with NumPy (3-5× speedup)
 2. Cache GMST calculations (small impact)
 3. Use smaller time step only for actual pass windows (10× speedup)
-4. GPU acceleration for ML (100× speedup for large batches)
 
 ---
 
@@ -602,7 +586,6 @@ pytest tests/test_pass_detector.py::test_aos_los_calculation -v
 | SGP4 errors | Check TLE format with `tle_loader.validate_tle()` |
 | Plot not saving | Ensure output directory exists |
 | Tests fail | Run `pip install -r requirements-test.txt` first |
-| ML errors | Ensure torch installed: `pip install torch` |
 
 ---
 

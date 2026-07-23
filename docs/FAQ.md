@@ -1,13 +1,13 @@
 # Frequently Asked Questions
 
-Common questions about the Satellite Pass Predictor — covering usage, core physics, data, ML, and testing.
+Common questions about the Satellite Pass Predictor — covering usage, core physics, data, and testing.
 
 ---
 
 ## General
 
 **Q: What does this project do?**  
-A: It predicts when a satellite will be visible from a ground station — giving you Acquisition of Signal (AOS), Time of Closest Approach (TCA), Loss of Signal (LOS), and max elevation for each pass. It supports LEO and GEO satellites, optional matplotlib/plotly plots, and an optional ML residual correction layer on top of SGP4.
+A: It predicts when a satellite will be visible from a ground station — giving you Acquisition of Signal (AOS), Time of Closest Approach (TCA), Loss of Signal (LOS), and max elevation for each pass. It supports LEO and GEO satellites and optional matplotlib/plotly plots.
 
 **Q: How do I run it?**  
 A: Two ways:
@@ -105,35 +105,14 @@ A: All outputs land in `outputs/` and are git-ignored (not committed):
 ```
 
 **Q: What does `prediction_type` mean?**  
-A: `"basic"` means raw SGP4 output was used. `"ai_corrected"` means the ML residual model was applied before elevation was computed.
+A: `"basic"` means the pass was computed from standard SGP4 propagation.
 
 ---
 
-## ML Correction
+## Machine learning
 
-**Q: What is the AI correction feature?**  
-A: A small PyTorch neural network (`ResidualPredictor`) that predicts an along-track position error in km. It shifts the satellite's ECEF position along its velocity unit vector before the elevation angle is computed. The result is a corrected prediction that attempts to account for TLE modelling residuals.
-
-**Q: What are the network inputs and output?**  
-
-| Feature | Description |
-|---------|-------------|
-| `time_since_tle_epoch_hours` | How old the TLE is at prediction time |
-| `mean_motion_rev_per_day` | Orbital rate from TLE line 2 |
-| `eccentricity` | Orbital eccentricity from TLE line 2 |
-| `inclination_deg` | Orbital inclination from TLE line 2 |
-
-Output: along-track error in km (positive = satellite is ahead of predicted position).
-
-**Q: Is the model pretrained?**  
-A: Yes — `models/residual_model.pt` is included in the repo. Enable it with:
-```bash
-python main.py --tle data/tle_leo/AO-91.txt --ai-correct
-# or answer "Yes" at Step 5 of the interactive wizard
-```
-
-**Q: Architecture of the neural network?**  
-A: Fully-connected: `4 → 64 → 32 → 16 → 1` with ReLU activations and 0.1 dropout.
+**Q: Does this project use machine learning?**  
+A: The app itself is pure physics (SGP4) — there is no ML in the prediction path. A separate, self-contained data-analysis notebook, [`notebooks/satellite_prediction_accuracy.ipynb`](../notebooks/satellite_prediction_accuracy.ipynb), studies how SGP4 prediction accuracy decays as a TLE ages, using real ISS data. Earlier exploratory ML experiments are preserved under [`archive/`](../archive/).
 
 ---
 

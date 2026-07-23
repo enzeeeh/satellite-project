@@ -66,14 +66,51 @@ st.caption("Predict when a satellite is visible from your location.")
 
 
 # ---------------------------------------------------------------------------
+# Preset observer locations: "City, Country" -> (lat_deg, lon_deg, altitude_m)
+# ---------------------------------------------------------------------------
+_CITIES = {
+    # Indonesia
+    "Jakarta, Indonesia":         (-6.2088, 106.8456,   8.0),
+    "Surabaya, Indonesia":        (-7.2575, 112.7521,   5.0),
+    "Bandung, Indonesia":         (-6.9175, 107.6191, 768.0),
+    "Medan, Indonesia":           ( 3.5952,  98.6722,  25.0),
+    "Semarang, Indonesia":        (-6.9667, 110.4167,   2.0),
+    "Makassar, Indonesia":        (-5.1477, 119.4327,   5.0),
+    "Palembang, Indonesia":       (-2.9761, 104.7754,   8.0),
+    "Yogyakarta, Indonesia":      (-7.7956, 110.3695, 113.0),
+    "Denpasar (Bali), Indonesia": (-8.6705, 115.2126,   4.0),
+    "Balikpapan, Indonesia":      (-1.2379, 116.8529,  10.0),
+    "Manado, Indonesia":          ( 1.4748, 124.8421,  13.0),
+    "Padang, Indonesia":          (-0.9471, 100.4172,   4.0),
+    "Pekanbaru, Indonesia":       ( 0.5071, 101.4478,  10.0),
+    "Malang, Indonesia":          (-7.9797, 112.6304, 429.0),
+    "Pontianak, Indonesia":       (-0.0263, 109.3425,   3.0),
+    "Batam, Indonesia":           ( 1.0456, 104.0305,  30.0),
+    # Rest of the world (for demos)
+    "Singapore":                  ( 1.3521, 103.8198,  15.0),
+    "Kuala Lumpur, Malaysia":     ( 3.1390, 101.6869,  66.0),
+    "Tokyo, Japan":               (35.6762, 139.6503,  40.0),
+    "Sydney, Australia":          (-33.8688, 151.2093, 58.0),
+    "London, UK":                 (51.5074,  -0.1278,  11.0),
+    "New York, USA":              (40.7128, -74.0060,  10.0),
+}
+_CUSTOM_LOCATION = "📍 Custom (enter coordinates…)"
+
+
+# ---------------------------------------------------------------------------
 # Sidebar: inputs
 # ---------------------------------------------------------------------------
 with st.sidebar:
     st.header("Observer Location")
-    st.caption("Enter where you are on Earth. The app uses this to compute which satellite passes are visible from your exact spot.")
-    lat = st.number_input("Latitude (deg)", min_value=-90.0, max_value=90.0, value=40.0, step=0.1, format="%.4f")
-    lon = st.number_input("Longitude (deg)", min_value=-180.0, max_value=180.0, value=-105.0, step=0.1, format="%.4f")
-    alt_m = st.number_input("Altitude (m)", min_value=0.0, max_value=8848.0, value=1600.0, step=10.0)
+    st.caption("Pick your city, or choose Custom to type exact coordinates. The app uses this to work out which satellite passes are visible from your spot.")
+    _location = st.selectbox("City", list(_CITIES.keys()) + [_CUSTOM_LOCATION], index=0)
+    if _location == _CUSTOM_LOCATION:
+        lat = st.number_input("Latitude (deg)", min_value=-90.0, max_value=90.0, value=-6.2088, step=0.1, format="%.4f")
+        lon = st.number_input("Longitude (deg)", min_value=-180.0, max_value=180.0, value=106.8456, step=0.1, format="%.4f")
+        alt_m = st.number_input("Altitude (m)", min_value=0.0, max_value=8848.0, value=8.0, step=10.0)
+    else:
+        lat, lon, alt_m = _CITIES[_location]
+        st.caption(f"📍 {lat:.4f}°,  {lon:.4f}°,  {alt_m:.0f} m above sea level")
 
     st.divider()
     st.header("Satellite")
@@ -133,23 +170,6 @@ with st.sidebar:
     step_sec = st.select_slider("Time step (sec)", options=[10, 15, 30, 60, 120], value=30)
 
     st.divider()
-    st.header("ML Correction")
-    st.caption("Optionally apply a neural-network model to reduce small timing errors in the standard SGP4 orbit calculation.")
-    _default_model = Path("models/residual_model.pt")
-    _model_found = _default_model.exists()
-    ml_enabled = st.toggle(
-        "Apply SGP4 residual correction",
-        value=False,
-        disabled=not _model_found,
-        help="Uses a trained neural network to reduce SGP4 along-track drift. "
-             "Requires models/residual_model.pt.",
-    )
-    if not _model_found:
-        st.caption("No model found at `models/residual_model.pt`. Train via the notebook first.")
-    elif ml_enabled:
-        st.caption(f"Model loaded: `{_default_model}`")
-
-    st.divider()
     st.header("AI Explanation")
     _groq_key = os.environ.get("GROQ_API_KEY", "")
     if not _OPENAI_AVAILABLE:
@@ -179,9 +199,8 @@ def _run_prediction(
     hours: float,
     threshold_deg: float,
     step_sec: float,
-    ml_model_path: str = None,
-) -> Tuple[List[datetime], List[float], List[float], List[Tuple], List[PassEvent], bool]:
-    """Propagate satellite and detect passes. Returns parallel lists + ml_applied flag."""
+) -> Tuple[List[datetime], List[float], List[float], List[Tuple], List[PassEvent]]:
+    """Propagate satellite and detect passes. Returns parallel lists."""
     sat = satrec_from_tle(line1, line2)
     station = GroundStation(lat_deg=lat, lon_deg=lon, alt_m=alt_m)
 
@@ -206,33 +225,8 @@ def _run_prediction(
             pass
         t += delta
 
-    # -- Optional ML residual correction ------------------------------------
-    ml_applied = False
-    if ml_model_path and times:
-        try:
-            from src.ml.predict import ResidualCorrector, apply_correction_to_position, features_from_satrec
-
-            corrector = ResidualCorrector(model_path=ml_model_path)
-            epoch_dt  = sat.epoch  # sgp4 Satrec stores epoch as Python datetime via jday
-
-            corrected_ecef, corrected_elev = [], []
-            for dt, pos_ecef in zip(times, ecef_series):
-                tse_h = (dt - start).total_seconds() / 3600.0  # approx hours since start
-                state = propagate_teme(sat, dt)
-                v_ecef = teme_to_ecef(state.v_km_s, gmst_angle(dt))
-                residual_km = corrector.predict_from_satrec(sat, tse_h)
-                pos_corr = apply_correction_to_position(pos_ecef, v_ecef, residual_km)
-                corrected_ecef.append(pos_corr)
-                corrected_elev.append(station.elevation_azimuth_deg(pos_corr)[0])
-
-            ecef_series = corrected_ecef
-            elevations  = corrected_elev
-            ml_applied  = True
-        except Exception as _exc:
-            pass  # fall back to uncorrected predictions silently
-
     passes = detect_passes(times, elevations, threshold_deg)
-    return times, elevations, azimuths, ecef_series, passes, ml_applied
+    return times, elevations, azimuths, ecef_series, passes
 
 
 # ---------------------------------------------------------------------------
@@ -253,6 +247,171 @@ def _quality_color(quality: str) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Educational tab help + summary
+# ---------------------------------------------------------------------------
+_TAB_HELP = {
+    "passes": {
+        "what": "Every time the satellite climbs above your horizon during the window, listed as a schedule.",
+        "look": "**AOS** = it rises into view, **TCA** = its highest point, **LOS** = it sets. **Max El** is how high it gets in degrees (higher is better); the colour rates each pass.",
+        "why": "This is your “when to watch or listen” list.",
+    },
+    "elevation": {
+        "what": "The satellite's height above your horizon (in degrees) plotted over time.",
+        "look": "Each hump is one pass. A taller hump means a higher, better pass. The dashed line is your minimum-elevation cut-off — anything below it is ignored.",
+        "why": "Shows how good each pass is and roughly how long it stays up.",
+    },
+    "skyview": {
+        "what": "A radar-style map of where the satellite crosses the sky directly above you.",
+        "look": "The centre is straight up (90°), the outer edge is the horizon (0°). The arc is the flight path; the compass ring tells you which way to face.",
+        "why": "Tells you where to point your eyes or antenna.",
+    },
+    "groundtrack": {
+        "what": "The point on Earth directly beneath the satellite, drawn on a world map.",
+        "look": "The wavy line is the orbit's path over the ground; the marker is your location. The closer the line passes to you, the better the pass.",
+        "why": "Shows the global path and when the satellite swings near you.",
+    },
+    "globe": {
+        "what": "The same orbital track shown on an interactive 3-D globe.",
+        "look": "Drag to rotate, scroll to zoom. Yellow = you, Green = rise (AOS), Orange = closest point (TCA), Red = set (LOS).",
+        "why": "Gives an intuitive 3-D feel for the orbit's shape and tilt.",
+    },
+}
+
+
+def _tab_help(key: str) -> None:
+    """Render a consistent 'what am I looking at' box at the top of a tab."""
+    h = _TAB_HELP[key]
+    st.info(
+        f"**What this shows** — {h['what']}\n\n"
+        f"**What to look for** — {h['look']}\n\n"
+        f"**Why it matters** — {h['why']}"
+    )
+
+
+def _compass(azimuth_deg: float) -> str:
+    """Convert an azimuth in degrees to an 8-point compass direction."""
+    dirs = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
+    return dirs[int((azimuth_deg % 360) / 45.0 + 0.5) % 8]
+
+
+def _render_how_it_works():
+    """Explain the core prediction pipeline, tying each step to the tab that shows it."""
+    with st.expander("🔬 How does this prediction actually work? (the 5 steps)", expanded=True):
+        st.markdown(
+            "The app never *watches* the satellite — it **calculates** where it will be, using "
+            "physics. Every tab you saw is one link in this chain:\n\n"
+
+            "**1 · Start with the TLE — the orbit's fingerprint.**  \n"
+            "A *Two-Line Element set* (TLE) is a small block of numbers describing the satellite's "
+            "orbit at one moment: its size, shape, tilt, and where it was. It's the input you loaded "
+            "in the sidebar.\n\n"
+
+            "**2 · Propagate with SGP4 — the physics engine.**  \n"
+            "SGP4 is the industry-standard model that takes the TLE and computes the satellite's "
+            "position in space at *any* time — now, in 10 minutes, in 2 days — by stepping forward "
+            "and applying orbital physics (gravity, Earth's bulge, atmospheric drag). This is the "
+            "**heart of the whole prediction**; the app runs it at every time step across your window.\n\n"
+
+            "**3 · Convert to a spot on Earth.**  \n"
+            "SGP4's position is in a space-fixed frame that ignores Earth's spin, so the app rotates "
+            "it into an Earth-fixed frame (accounting for how far Earth has turned) to get the point "
+            "on the globe directly beneath the satellite. → the **Ground Track** and **Globe** tabs.\n\n"
+
+            "**4 · Point it at *your* sky.**  \n"
+            "From your city's coordinates, the app works out — at each moment — how high the satellite "
+            "sits above your horizon (**elevation**) and which compass direction it's in (**azimuth**). "
+            "→ elevation is the **Elevation** tab; direction is the **Sky View** tab.\n\n"
+
+            "**5 · Find the passes.**  \n"
+            "It then scans that elevation-over-time curve. Each time the satellite climbs above your "
+            "minimum-elevation threshold and comes back down, that's **one visible pass** — the app "
+            "records when it rises (**AOS**), its highest point (**TCA**), and when it sets (**LOS**). "
+            "→ the **Passes** tab and the numbers at the top of this Summary.\n\n"
+
+            "---\n"
+            "**In one line:**  TLE → SGP4 physics → rotate to Earth → your local sky → detect passes.  \n"
+            "No cameras, no live tracking — just orbital mechanics run forward in time.\n\n"
+
+            "**How accurate is it?** As accurate as the TLE is *fresh*. A TLE drifts as it ages "
+            "(for the ISS, position error grows on the order of a few km per day), which is why the "
+            "app fetches the **latest** TLE instead of reusing an old one."
+        )
+
+
+def _render_summary(sat_name, passes, times, azimuths, hours, threshold_deg):
+    """Plain-English conclusion that ties every tab together."""
+    st.subheader(f"Summary — {sat_name}")
+
+    if not passes:
+        st.warning(
+            f"**No visible passes** for **{sat_name}** above **{threshold_deg:.0f}°** "
+            f"in the next **{hours:.0f} hours**.\n\n"
+            "Try lowering the *Min elevation* threshold or increasing *Hours ahead* in the "
+            "sidebar, then run the prediction again."
+        )
+        _render_how_it_works()
+        return
+
+    now = datetime.now(timezone.utc)
+    best = max(passes, key=lambda p: p.max_elevation_deg)
+    nxt = min(passes, key=lambda p: p.start_time)
+    hrs_to_next = (nxt.start_time - now).total_seconds() / 3600.0
+    best_quality = _pass_quality(best.max_elevation_deg)
+
+    # Compass direction the satellite faces at the best pass's peak
+    try:
+        idx = min(range(len(times)), key=lambda j: abs(times[j] - best.max_time))
+        best_dir = _compass(azimuths[idx])
+    except (ValueError, IndexError):
+        best_dir = "?"
+
+    st.markdown(
+        "### 🛰️ Bottom line\n"
+        f"**{sat_name}** makes **{len(passes)}** visible pass(es) over your location in the next "
+        f"**{hours:.0f} hours**. The **best** one is a **{best_quality}** pass on "
+        f"**{best.max_time.strftime('%b %d, %H:%M UTC')}**, reaching **{best.max_elevation_deg:.0f}°** "
+        f"high toward the **{best_dir}**."
+    )
+
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Passes found", len(passes))
+    c2.metric("Best elevation", f"{best.max_elevation_deg:.0f}°", help="Higher = better / closer pass")
+    c3.metric("Next pass in", f"{max(hrs_to_next, 0):.1f} h")
+    c4.metric("Best quality", best_quality)
+
+    from collections import Counter
+    counts = Counter(_pass_quality(p.max_elevation_deg) for p in passes)
+    breakdown = "  ·  ".join(f"{q}: {counts[q]}" for q in ["Excellent", "Good", "Fair", "Low"] if counts.get(q))
+    st.caption(f"**Quality mix:** {breakdown}")
+
+    dur_min = (best.end_time - best.start_time).total_seconds() / 60.0
+    st.markdown(
+        f"**Best pass detail** — rises (AOS) {best.start_time.strftime('%H:%M:%S')} · "
+        f"peak (TCA) {best.max_time.strftime('%H:%M:%S')} at {best.max_elevation_deg:.0f}° · "
+        f"sets (LOS) {best.end_time.strftime('%H:%M:%S')} · lasts ~{dur_min:.0f} min (times UTC)."
+    )
+
+    st.markdown("### 📑 What each tab told us")
+    st.markdown(
+        f"- **Passes** — the schedule: **{len(passes)}** pass(es) to plan around.\n"
+        f"- **Elevation** — the highest the satellite gets is **{best.max_elevation_deg:.0f}°** "
+        "(taller peaks = better passes).\n"
+        f"- **Sky View** — for the best pass, face toward the **{best_dir}**.\n"
+        "- **Ground Track / Globe** — the orbit's path over Earth and how close it comes to you."
+    )
+
+    tips = {
+        "Excellent": "A near-overhead pass — excellent for viewing or radio contact. Just find an open patch of sky.",
+        "Good": "A high pass — good signal and easy to spot. A mostly-clear sky is enough.",
+        "Fair": "A medium pass — usable, but pick a spot with a low, unobstructed horizon.",
+        "Low": "A low pass — you'll need a very clear horizon (no buildings or trees) in that direction.",
+    }
+    st.success(f"**Viewing tip:** {tips[best_quality]}")
+
+    _render_how_it_works()
+
+
+# ---------------------------------------------------------------------------
 # Main panel
 # ---------------------------------------------------------------------------
 if run_btn:
@@ -260,16 +419,13 @@ if run_btn:
         st.error("No TLE loaded. Select a local file or fetch from a live source in the sidebar.")
     else:
         with st.spinner("Running prediction..."):
-            times, elevations, azimuths, ecef_series, passes, ml_applied = _run_prediction(
+            times, elevations, azimuths, ecef_series, passes = _run_prediction(
                 tle_line1, tle_line2,
                 lat, lon, alt_m,
                 float(hours), float(threshold), float(step_sec),
-                ml_model_path=str(_default_model) if ml_enabled else None,
             )
 
         sat_name = tle_name or "Satellite"
-        if ml_applied:
-            st.info("ML residual correction applied to all position samples.")
 
         if not passes:
             st.warning(f"No passes above {threshold}° found in the next {hours} hours.")
@@ -280,6 +436,7 @@ if run_btn:
         tab_labels = ["Passes", "Elevation", "Sky View", "Ground Track"]
         if _PYDECK_AVAILABLE:
             tab_labels.append("Globe")
+        tab_labels.append("📋 Summary")
         tabs = st.tabs(tab_labels)
 
         # shared helper for per-tab AI explanation
@@ -306,11 +463,7 @@ if run_btn:
         # ---- Tab 1: Pass table ----
         with tabs[0]:
             st.subheader("Detected Passes")
-            st.caption(
-                "Lists every predicted pass sorted by time. "
-                "Use it to plan when to point your antenna or open your radio app. "
-                "Green = Excellent (≥60°), Blue = Good, Amber = Fair, Red = Low quality."
-            )
+            _tab_help("passes")
             if not passes:
                 st.info("No passes detected with the current settings.")
             else:
@@ -341,7 +494,7 @@ if run_btn:
                 _gp = build_explanation_prompt(
                     sat_name=sat_name, lat=lat, lon=lon, alt_m=alt_m,
                     hours=float(hours), threshold_deg=float(threshold),
-                    passes=passes, ml_applied=ml_applied,
+                    passes=passes,
                 )
                 _gck = hash(_gp)
                 with st.expander("🤖 AI Explanation", expanded=True):
@@ -359,11 +512,7 @@ if run_btn:
         # ---- Tab 2: Elevation plot ----
         with tabs[1]:
             st.subheader("Elevation over Time")
-            st.caption(
-                "Shows how high the satellite appears in your sky over time. "
-                "Higher elevation = stronger signal. "
-                "The shaded bands mark each visible pass window above your minimum threshold."
-            )
+            _tab_help("elevation")
             if times:
                 fig = plot_elevation_plotly(
                     times, elevations, passes,
@@ -380,11 +529,7 @@ if run_btn:
         # ---- Tab 3: Sky view ----
         with tabs[2]:
             st.subheader("Sky View (Polar)")
-            st.caption(
-                "Top-down view of your sky. Centre = directly overhead (90°), outer ring = horizon (0°). "
-                "Each arc shows the satellite's path through your sky during a pass — "
-                "use the compass angle to know which direction to face."
-            )
+            _tab_help("skyview")
             if times and azimuths:
                 fig = plot_sky_polar(
                     times, elevations, azimuths, passes,
@@ -400,11 +545,7 @@ if run_btn:
         # ---- Tab 4: Ground track ----
         with tabs[3]:
             st.subheader("Ground Track")
-            st.caption(
-                "Shows the satellite's path projected onto Earth's surface. "
-                "The marker is your ground station. "
-                "Use this to see whether the satellite is approaching or moving away from your location."
-            )
+            _tab_help("groundtrack")
             if ecef_series:
                 fig = plot_ground_track_plotly(
                     times, ecef_series,
@@ -423,11 +564,7 @@ if run_btn:
         if _PYDECK_AVAILABLE:
             with tabs[4]:
                 st.subheader("3D Globe")
-                st.caption(
-                    "Interactive 3D view of the satellite's ground track. "
-                    "Drag to rotate, scroll to zoom. "
-                    "Yellow = your station · Green = AOS · Orange = TCA (closest approach) · Red = LOS."
-                )
+                _tab_help("globe")
                 if ecef_series and passes:
                     from src.visualization.ground_track import ecef_to_geodetic_latlon
                     event_latlons = []
@@ -453,6 +590,10 @@ if run_btn:
                     st.info("No data to display.")
                 from src.llm_explainer import build_visual_prompt
                 _tab_explain("globe", build_visual_prompt, "globe", sat_name, passes)
+
+        # ---- Summary tab (conclusion that ties all tabs together) ----
+        with tabs[-1]:
+            _render_summary(sat_name, passes, times, azimuths, float(hours), float(threshold))
 
 else:
     st.info("Configure your settings in the sidebar and click **Run Prediction** to start.")

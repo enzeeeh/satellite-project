@@ -3,8 +3,8 @@
 ## Guides
 
 - [Architecture](ARCHITECTURE.md) — Module layout, data flow, system design
-- [Prediction Pipeline](deep_dive/prediction_pipeline.md) — SGP4 math, coordinate transforms, ML corrections
-- [FAQ](FAQ.md) — Physics, data sources, ML, and testing questions
+- [Prediction Pipeline](deep_dive/prediction_pipeline.md) — SGP4 math and coordinate transforms
+- [FAQ](FAQ.md) — Physics, data sources, and testing questions
 - [Development Guide](DEVELOPMENT.md) — Contributing, running tests, code style
 - [Roadmap](ROADMAP.md) — Planned features and priorities
 

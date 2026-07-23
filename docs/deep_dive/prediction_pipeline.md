@@ -1,6 +1,6 @@
 # Satellite Pass Prediction: How It Works
 
-A practical, detailed walkthrough of how the project turns 3 lines of TLE text plus a ground station location into predicted satellite passes, with optional machine-learning residual corrections.
+A practical, detailed walkthrough of how the project turns 3 lines of TLE text plus a ground station location into predicted satellite passes.
 
 This document explains every step of the process in plain language with mathematical details, so you can understand exactly how we determine when a satellite will be visible from your location on Earth.
 
@@ -47,8 +47,7 @@ Your observation point on Earth, described by:
 4. Convert ground station WGS84 → ECEF → align coordinate systems
 5. Relative geometry: ECEF → ENU → calculate elevation/azimuth angles
 6. Detect passes → find when elevation crosses the visibility threshold
-7. (Optional) Apply ML residual correction → improve accuracy using machine learning
-8. Output pass list, plots, and JSON data
+7. Output pass list, plots, and JSON data
 
 ---
 
@@ -352,56 +351,7 @@ This is a key insight: **The TLE doesn't tell us 3 sparse sample points. It desc
 
 ---
 
-## Part 5 — ML Residual Correction: Improving Accuracy with Machine Learning
-
-### The Problem: TLE Aging
-
-Over time, TLEs become less accurate because:
-- **Atmospheric drag** is unpredictable (depends on solar activity, not in the TLE)
-- **Perturbations** accumulate (tidal forces, solar radiation pressure)
-- **Orbit decay** is modeled as linear in TLE, but is actually non-linear
-
-**Result:** A TLE that's 1 week old might have position errors of 1-5 km along the satellite's track.
-
-### What Is a "Residual"?
-
-A **residual** is the difference between:
-- **Predicted position** from SGP4 using the old TLE
-- **Actual position** from real tracking data
-
-$$\text{residual} = \text{position}_{\text{actual}} - \text{position}_{\text{predicted}}$$
-
-### Why Use Machine Learning?
-
-Instead of updating the TLE (which requires ground observation), we train a neural network to **predict how wrong SGP4 will be** based on:
-- How old the TLE is
-- The orbital characteristics (eccentricity, inclination)
-- The satellite's motion parameters (mean motion)
-
-### Our FCN Architecture
-
-Fully-Connected Network with:
-```
-Input layer (4 features)
-    ↓
-Hidden layer 1 (64 neurons)
-    ↓
-Hidden layer 2 (32 neurons)
-    ↓
-Hidden layer 3 (16 neurons)
-    ↓
-Output layer (1 neuron = predicted error in km)
-```
-
-**Why FCN?**
-- Small feature set (only 4 numbers)
-- Fast inference (real-time capable)
-- Smooth output (residuals vary smoothly)
-- Easy to train
-
----
-
-## Part 6 — Outputs: What We Produce
+## Part 5 — Outputs: What We Produce
 
 For each successful prediction run, we generate:
 
@@ -462,4 +412,4 @@ Get fresh TLEs from:
 
 ## Summary
 
-This entire pipeline calculates satellite positions using physics, transforms between coordinate systems, detects visibility windows, and optionally improves accuracy using machine learning — all in **seconds** for 48 hours of predictions.
+This entire pipeline calculates satellite positions using physics, transforms between coordinate systems, detects visibility windows — all in **seconds** for 48 hours of predictions.

@@ -16,7 +16,6 @@ outputs/
 - **Prediction Window:** 12 hours (08:24 - 20:24 UTC)
 - **Ground Station:** 40.0°N, 105.0°W, 1600m (Boulder, CO)
 - **Visibility Threshold:** 10° elevation
-- **ML Corrections:** ✅ Enabled (residual_model.pt)
 - **Visualization:** Matplotlib
 
 ### Pass Results

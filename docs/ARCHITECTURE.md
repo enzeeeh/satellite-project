@@ -11,15 +11,11 @@ main.py         CLI entry point
 │   ├── propagator.py       SGP4 propagation, coordinate transforms
 │   ├── ground_station.py   WGS84 geometry, elevation, azimuth
 │   └── pass_detector.py    Threshold-based AOS/TCA/LOS detection
-├── src/visualization/
-│   ├── elevation_plot.py   Elevation vs time (Matplotlib + Plotly)
-│   ├── ground_track.py     Ground track map (Matplotlib + Plotly)
-│   ├── sky_plot.py         Polar sky view (Plotly)
-│   └── globe_track.py      3D globe (Pydeck)
-└── src/ml/
-    ├── model.py            PyTorch residual predictor network
-    ├── train.py            Training pipeline
-    └── predict.py          Inference and correction application
+└── src/visualization/
+    ├── elevation_plot.py   Elevation vs time (Matplotlib + Plotly)
+    ├── ground_track.py     Ground track map (Matplotlib + Plotly)
+    ├── sky_plot.py         Polar sky view (Plotly)
+    └── globe_track.py      3D globe (Pydeck)
 ```
 
 ## Data Flow
@@ -37,8 +33,6 @@ SGP4 propagation — for each time step:
   ↓
 Pass detection — threshold crossing state machine
   →  AOS / TCA / LOS events per pass
-  ↓
-Optional ML correction — neural network residual layer
   ↓
 Visualizations (elevation, sky polar, ground track, globe)
   ↓
@@ -91,21 +85,15 @@ main.py
 │   ├── ground_station
 │   └── pass_detector
 │
-├── src.visualization (optional, if --plot)
-│   ├── elevation_plot → matplotlib/plotly
-│   └── ground_track → matplotlib/plotly
-│
-└── src.ml (optional, if --ai-correct)
-    ├── model → torch
-    ├── train → torch, numpy
-    └── predict → torch, numpy
+└── src.visualization (optional, if --plot)
+    ├── elevation_plot → matplotlib/plotly
+    └── ground_track → matplotlib/plotly
 
 External:
 - sgp4: Orbital mechanics (required)
 - numpy: Numerical computing (with sgp4)
 - matplotlib: Plotting (optional)
 - plotly: Interactive plots (optional)
-- torch: ML (optional)
 ```
 
 ---
@@ -186,8 +174,7 @@ except ImportError:
 
 1. **If physics-related**: Add to src/core/
 2. **If visualization**: Add to src/visualization/
-3. **If ML**: Add to src/ml/
-4. **Update main.py**: Add CLI flag
+3. **Update main.py**: Add CLI flag
 
 **Example: Add CSV export**
 ```python
@@ -313,8 +300,7 @@ Plan to support YAML/JSON config files for:
 
 ### Performance
 1. Vectorize propagation with NumPy
-2. GPU acceleration for ML
-3. Parallel processing for batch
+2. Parallel processing for batch
 
 ### Extensibility
 1. REST API for web interface

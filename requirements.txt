@@ -1,7 +1,6 @@
 sgp4>=2.20
 numpy>=1.20.0
 scikit-learn>=1.0.0
-torch>=2.0.0
 matplotlib>=3.5.0
 plotly>=5.0.0
 nbformat>=4.2.0

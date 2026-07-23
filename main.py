@@ -5,7 +5,6 @@ Single entry point supporting:
 - Basic pass prediction
 - Visualization (matplotlib/plotly)
 - Synthetic deviation analysis
-- ML-corrected predictions
 """
 
 from __future__ import annotations
@@ -40,7 +39,7 @@ DEFAULT_PLOT_TYPE = "none"
 def parse_args() -> argparse.Namespace:
     """Parse command-line arguments."""
     p = argparse.ArgumentParser(
-        description="Unified Satellite Pass Predictor (supports basic, visualization, analysis, and AI-correction)",
+        description="Unified Satellite Pass Predictor (supports basic prediction, visualization, and analysis)",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -53,11 +52,8 @@ Examples:
   # With analysis and interactive plots
   python main.py --tle data/tle_leo/AO-91.txt --plot plotly --analyze-deviation
 
-  # With AI correction (requires trained model)
-  python main.py --tle data/tle_leo/AO-91.txt --ai-correct --model models/residual_model.pt
-
   # All features combined
-  python main.py --tle data/tle_leo/AO-91.txt --plot both --ai-correct --model models/residual_model.pt --analyze-deviation
+  python main.py --tle data/tle_leo/AO-91.txt --plot both --analyze-deviation
         """)
 
     # Input/output
@@ -81,10 +77,6 @@ Examples:
 
     # Analysis options
     p.add_argument("--analyze-deviation", action="store_true", help="Analyze TLE accuracy (synthetic deviation)")
-
-    # AI correction options
-    p.add_argument("--ai-correct", action="store_true", help="Apply ML-based residual correction")
-    p.add_argument("--model", type=str, default=None, help="Path to trained ML model")
 
     # Output format
     p.add_argument("--json-output", action="store_true", help="Save passes as JSON")
@@ -144,22 +136,6 @@ def _parse_line2_features(line2: str) -> Tuple[float, float, float]:
         return mm_rev_per_day, eccentricity, inc_deg
 
 
-def _epoch_from_line1(line1: str) -> datetime:
-    """Parse epoch from TLE line 1 and return UTC datetime.
-
-    Epoch field: columns 19-32 (1-based): YYDDD.DDDDDDDD
-    """
-    # Slice 18:32 in Python (0-based)
-    field = line1[18:32].strip()
-    yy = int(field[:2])
-    year = 2000 + yy if yy < 57 else 1900 + yy
-    day_fraction = float(field[2:])
-    day_int = int(day_fraction)
-    frac = day_fraction - day_int
-    epoch = datetime(year, 1, 1, tzinfo=timezone.utc) + timedelta(days=day_fraction - 1)
-    return epoch
-
-
 def passes_to_dict(passes: List[PassEvent], prediction_type: str = "basic") -> List[Dict[str, Any]]:
     """Convert PassEvent objects to dictionaries."""
     result = []
@@ -200,7 +176,6 @@ def create_output_metadata(
         },
         "features": {
             "visualization": args.plot != "none",
-            "ai_correction": args.ai_correct,
             "deviation_analysis": args.analyze_deviation,
         },
         "num_passes": len(passes),
@@ -293,7 +268,7 @@ def interactive_mode() -> argparse.Namespace:
     print("═" * 70)
 
     # ── STEP 1 : Choose satellite ─────────────────────────────────────────
-    print("\n┌─ STEP 1 of 5 ─ Choose a satellite ─────────────────────────────┐")
+    print("\n┌─ STEP 1 of 4 ─ Choose a satellite ─────────────────────────────┐")
     tle_files = _discover_tle_files()
     if not tle_files:
         print("  ✗  No TLE files found under data/  – exiting.")
@@ -312,7 +287,7 @@ def interactive_mode() -> argparse.Namespace:
         sys.exit(1)
 
     # ── STEP 2 : Ground station ───────────────────────────────────────────
-    print("\n┌─ STEP 2 of 5 ─ Ground station (your location) ────────────────┐")
+    print("\n┌─ STEP 2 of 4 ─ Ground station (your location) ────────────────┐")
     gs_labels = [f"{name}  ({lat}°, {lon}°)" if lat is not None else name
                  for name, lat, lon, _ in _GS_PRESETS]
     gs_idx = _choose_from_menu("Choose a preset or enter custom:", gs_labels, default_idx=0)
@@ -327,7 +302,7 @@ def interactive_mode() -> argparse.Namespace:
         print(f"  ✓  Station: {preset[0]}  →  {lat}°, {lon}°, {alt} m")
 
     # ── STEP 3 : Prediction window ─────────────────────────────────────────
-    print("\n┌─ STEP 3 of 5 ─ Prediction window ──────────────────────────────┐")
+    print("\n┌─ STEP 3 of 4 ─ Prediction window ──────────────────────────────┐")
     hours = _prompt_float("Prediction duration (hours, e.g. 24 or 48)", 24.0, 1.0, 720.0)
 
     _step_map = {0: 10.0, 1: 30.0, 2: 60.0, 3: 120.0}
@@ -344,7 +319,7 @@ def interactive_mode() -> argparse.Namespace:
     print(f"  ✓  Window: next {hours:.0f}h  |  step: {step_sec:.0f}s  |  threshold: {threshold}°")
 
     # ── STEP 4 : Visualization ─────────────────────────────────────────────
-    print("\n┌─ STEP 4 of 5 ─ Visualization ──────────────────────────────────┐")
+    print("\n┌─ STEP 4 of 4 ─ Visualization ──────────────────────────────────┐")
     plot_idx = _choose_from_menu(
         "Generate plots?",
         ["No plots  (text + JSON output only)",
@@ -358,26 +333,6 @@ def interactive_mode() -> argparse.Namespace:
     if plot_choice != "none":
         print(f"  ✓  Plots: {plot_choice}  →  saved to outputs/")
 
-    # ── STEP 5 : AI correction ────────────────────────────────────────────
-    print("\n┌─ STEP 5 of 5 ─ AI residual correction ─────────────────────────┐")
-    model_path = Path("models/residual_model.pt")
-    ai_correct = False
-    model_str  = None
-
-    if model_path.exists():
-        ai_idx = _choose_from_menu(
-            f"Apply ML correction? (trained model found at {model_path})",
-            ["No   – use raw SGP4 predictions",
-             "Yes  – apply neural-net residual correction"],
-            default_idx=0,
-        )
-        ai_correct = ai_idx == 1
-        if ai_correct:
-            model_str = str(model_path)
-            print(f"  ✓  AI correction enabled using {model_str}")
-    else:
-        print(f"  ℹ   No trained model found at {model_path}  – skipping AI correction.")
-
     # ── CONFIRMATION ──────────────────────────────────────────────────────
     print("\n" + "─" * 70)
     print("  SUMMARY – about to run with these settings:")
@@ -385,7 +340,6 @@ def interactive_mode() -> argparse.Namespace:
     print(f"    Station    :  lat={lat}°  lon={lon}°  alt={alt}m")
     print(f"    Window     :  {hours:.0f}h  |  step={step_sec:.0f}s  |  threshold={threshold}°")
     print(f"    Plots      :  {plot_choice}")
-    print(f"    AI correct :  {'yes' if ai_correct else 'no'}")
     print("─" * 70)
 
     confirm = _prompt("Press ENTER to run, or type 'q' to quit", "")
@@ -406,8 +360,6 @@ def interactive_mode() -> argparse.Namespace:
         start_utc=None,
         plot=plot_choice,
         analyze_deviation=False,
-        ai_correct=ai_correct,
-        model=model_str,
         json_output=True,
     )
     return ns
@@ -459,45 +411,6 @@ def main():
     print(f"\n[3/5] Propagating satellite...")
     elevations, ecef_series = propagate_and_compute_elevations(sat, gs, times)
     print(f"  ✓ Computed {len(elevations)} elevation samples")
-
-    # Optional: AI correction of positions/elevations
-    if args.ai_correct:
-        if not args.model:
-            print("  ✗ AI correction requested but --model path not provided; skipping correction")
-        else:
-            try:
-                # Deferred import to avoid torch unless needed
-                from src.ml.predict import ResidualCorrector, apply_correction_to_position, features_from_satrec
-
-                print(f"\n[3a] Applying ML residual corrections using model: {args.model}")
-                corrector = ResidualCorrector(model_path=args.model)
-
-                # Epoch from line 1 (for time_since_epoch_hours)
-                epoch_dt = _epoch_from_line1(line1)
-
-                corrected_ecef: List[Tuple[float, float, float]] = []
-                corrected_elevations: List[float] = []
-
-                for dt, pos_ecef in zip(times, ecef_series):
-                    # Time since epoch in hours
-                    tse_hours = (dt.astimezone(timezone.utc) - epoch_dt).total_seconds() / 3600.0
-
-                    # Recompute TEME velocity and rotate to ECEF for along-track direction
-                    teme_state = propagate_teme(sat, dt)
-                    gmst = gmst_angle(dt)
-                    v_ecef = teme_to_ecef(teme_state.v_km_s, gmst)
-
-                    # All 6 features extracted from the Satrec object — same formula as training
-                    residual_km = corrector.predict_from_satrec(sat, tse_hours)
-                    pos_corr = apply_correction_to_position(pos_ecef, v_ecef, residual_km)
-                    corrected_ecef.append(pos_corr)
-                    corrected_elevations.append(gs.elevation_deg(pos_corr))
-
-                ecef_series = corrected_ecef
-                elevations = corrected_elevations
-                print("  ✓ ML corrections applied to all samples")
-            except Exception as e:
-                print(f"  ✗ AI correction failed: {e}. Continuing without ML corrections.")
 
     # Detect passes
     print(f"\n[4/5] Detecting passes...")

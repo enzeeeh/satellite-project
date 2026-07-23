@@ -78,9 +78,6 @@ cd satellite-project
 # Install dependencies
 pip install -r requirements-test.txt
 
-# Install ML dependencies (optional)
-pip install torch
-
 # Verify setup
 pytest tests/ -v
 ```
@@ -97,7 +94,7 @@ pytest tests/ -v
 python main.py --tle data/tle.txt
 
 # Run with all features
-python main.py --tle data/tle.txt --plot matplotlib --ai-correct --analyze-deviation
+python main.py --tle data/tle.txt --plot matplotlib --analyze-deviation
 ```
 
 ---
@@ -287,14 +284,8 @@ git commit -m "Vectorize propagation: 5x speedup"
 ### Q: How do I add a new CLI flag?
 **A**: See [DEVELOPMENT.md - Adding New Features](DEVELOPMENT.md#adding-new-features)
 
-### Q: How do I modify the neural network?
-**A**: See `src/ml/model.py` and [DEVELOPMENT.md - ML](DEVELOPMENT.md)
-
 ### Q: Can I change the output format?
 **A**: Discuss in an issue first - affects backward compatibility
-
-### Q: How do I test the ML module?
-**A**: See `tests/test_ml_*.py` for examples
 
 ### Q: What if my change breaks existing tests?
 **A**: Either:

@@ -37,7 +37,6 @@ def build_explanation_prompt(
     hours: float,
     threshold_deg: float,
     passes: list,
-    ml_applied: bool,
 ) -> str:
     """Build the prompt that will be sent to the LLM.
 
@@ -61,12 +60,6 @@ def build_explanation_prompt(
         else "  No passes detected above the minimum elevation threshold."
     )
 
-    ml_note = (
-        "Yes — a trained neural-network model was applied to reduce SGP4 along-track drift errors."
-        if ml_applied
-        else "No — standard SGP4 propagation only (no ML correction)."
-    )
-
     return f"""You are a friendly satellite-tracking and amateur-radio expert.
 Explain the satellite pass prediction results below in plain, easy-to-understand language
 for someone completely new to this topic. Define every technical term you use.
@@ -76,7 +69,6 @@ Satellite          : {sat_name}
 Observer location  : {lat:.4f}° lat, {lon:.4f}° lon, {alt_m:.0f} m altitude
 Prediction window  : next {hours:.0f} hours
 Min elevation used : {threshold_deg:.1f}° (passes below this are ignored)
-ML correction      : {ml_note}
 
 Passes found ({len(passes)} total):
 {passes_text}
@@ -89,8 +81,7 @@ Please cover all of the following points clearly:
 3. **Elevation** — why does a higher elevation angle matter, and what do the numbers mean for visibility?
 4. **Best passes** — which pass(es) should I pay attention to and why?
 5. **Quality ratings** — what do Excellent (≥60°), Good (30–60°), Fair (15–30°), and Low (<15°) actually feel like in practice?
-6. **ML correction** — in simple terms, what does applying a machine-learning correction do?
-7. **Practical tips** — one or two actionable tips for actually observing or communicating through this satellite.
+6. **Practical tips** — one or two actionable tips for actually observing or communicating through this satellite.
 
 Keep the tone warm, educational, and accessible — like explaining to a curious beginner.
 Avoid overwhelming them; keep each section concise.
