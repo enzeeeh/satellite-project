@@ -140,49 +140,78 @@ Total trainable parameters: ~1.8 M.
 
 ### 5.6 Baseline
 
-The *SGP4 baseline* repeats the last observed position (from the final timestep of the input window) as the prediction for all four horizons. This is equivalent to zero-velocity dead reckoning and represents the accuracy of a stale TLE without any learned correction.
+The **SGP4-stale baseline** propagates, for each prediction time, the most recent TLE that is at least `STALE_DAYS` old (3 days in the reported run), producing a full SGP4 position estimate at every horizon. This is a strong, operationally realistic baseline: it is exactly what a ground station would obtain by running SGP4 on the freshest TLE it happened to have a few days ago.
 
-> **Note:** A stronger baseline would propagate each test window's most recent TLE directly with SGP4. This is left as a future extension (see Section 9).
+> **Note:** An earlier draft of this plan specified a weaker dead-reckoning baseline (repeat the last observed position). That was replaced during implementation by the full SGP4-stale propagation above, which is a materially harder target to beat. See §5.7.
+
+### 5.7 Implementation notes — deviations from the original plan
+
+The notebooks as executed differ from the plan in §5.1–§5.6 in two important ways. Both are recorded here so the results in §6 are interpreted against what was actually run, not against the original intent.
+
+1. **Residual correction, not end-to-end replacement.** §1 and §5.1 frame the models as predicting *absolute* position and removing SGP4 from the inference path. The implemented models instead predict the **residual** `y_true − y_SGP4_stale` and add it back to the SGP4-stale baseline (see NB02 §4 and NB04 `predict_corrected`). SGP4 therefore remains in the loop; the ML layer is a correction, not a replacement.
+2. **"Ground truth" is itself SGP4.** The target series `y_true` is produced by propagating each satellite's *freshest available* TLE with SGP4 (NB01, cell 10). There is no independent measured ephemeris in the dataset. The learning target is thus the divergence between two SGP4 runs (fresh-TLE vs stale-TLE), i.e. SGP4's own analytic drag behaviour — not real physical error. This bounds what any model can achieve (see §7) and is the single most important caveat on the results below.
 
 ---
 
 ## 6. Experiments
 
-*Results to be filled after running Notebooks 03 and 04.*
+Results are from the completed four-way benchmark on the held-out test set (**31,541 windows**, final 15% by time; training-log "Run 3", `STALE_DAYS = 3`). All figures are 3-D geodetic position error in km (great-circle surface distance combined in quadrature with altitude difference). The ML systems predict a residual on top of the SGP4-stale baseline (§5.6–§5.7).
 
 ### 6.1 Overall Accuracy
 
-| Model | MAE T+10 | MAE T+30 | MAE T+60 | MAE T+120 | RMSE T+60 |
+Columns T+10…T+120 are MAE in km; the final column is RMSE at T+60.
+
+| System | T+10 | T+30 | T+60 | T+120 | RMSE T+60 |
 |---|---|---|---|---|---|
-| SGP4 baseline | — | — | — | — | — |
-| LSTM | — | — | — | — | — |
-| Transformer | — | — | — | — | — |
+| **SGP4-stale (baseline)** | **6.30** | **6.29** | **6.29** | **6.29** | **8.56** |
+| Do-nothing (predict zero residual) | 6.31 | 6.31 | 6.31 | 6.31 | — |
+| LSTM | 11.78 | 11.58 | 16.81 | 14.46 | 31.98 |
+| Transformer | 19.46 | 26.71 | 26.79 | 24.67 | 37.39 |
+| MLP (ablation) | 41.25 | 43.86 | 46.15 | 48.26 | 57.78 |
+
+**The hypothesis is not supported.** No ML system beats the SGP4-stale baseline at any horizon. The decisive control is the *do-nothing* row: a model that emits a zero residual scores 6.31 km — indistinguishable from the baseline (a residual-scaler mean-shift of only `[-0.0001, -0.003, +0.062]` confirms there is no bias artefact). Every trained model therefore scores **worse than applying no correction at all**; the learned corrections add error rather than removing it. Error also grows with model flexibility in the wrong direction (MLP ≫ Transformer ≫ LSTM ≫ baseline), the signature of models fitting noise in the residual target.
 
 ### 6.2 Accuracy vs TLE Age (T+60)
 
-| TLE Age | SGP4 MAE | LSTM MAE | Transformer MAE |
-|---|---|---|---|
-| < 1 day | — | — | — |
-| 1–3 days | — | — | — |
-| 3–7 days | — | — | — |
-| > 7 days | — | — | — |
+| TLE Age | SGP4-stale | LSTM | Transformer | MLP |
+|---|---|---|---|---|
+| < 1 day | 6.39 | 17.01 | 27.00 | 46.40 |
+| 1–3 days | 2.95 | 6.98 | 19.37 | 35.17 |
+| 3–7 days | *no test samples* | — | — | — |
+| > 7 days | *no test samples* | — | — | — |
+
+The staleness hypothesis predicts an ML advantage precisely in the **> 3-day** cohorts — and those cohorts are empty. Because each TLE is propagated at most 3 days from its own epoch (NB01), the fresh-track TLE age used for binning never exceeds ~3 days, so the regime the experiment was designed to probe is not present in the data. Within the ages that *do* exist, the baseline is strongest exactly where SGP4 is expected to be strong (freshest TLEs), and the models never close the gap.
+
+> **Reproducibility note (2026-07-18).** The numbers above are the committed NB04 outputs (a self-consistent Run-3 artifact set). Re-executing NB04 against the *current* `data/collected/` artifacts does **not** reproduce them: the on-disk `.npy` data + scalers are dated 2026-06-03 while the `.pt` weights are dated 2026-06-04 — they are **from different runs**. Evaluating mismatched artifacts yields LSTM ≈ 130 km and breaks the do-nothing control (6.98 km vs a 6.22 km baseline, i.e. a spurious bias). The residual scaler itself is pathological — `scale_ = [0.82, 8.96, 0.52]`, i.e. a **~9° longitude-residual std** caused by ±180° wrapping (see §7.3). Conclusions are unaffected (every model remains far worse than SGP4, only more so), but publication-grade numbers require one **self-consistent** NB02→NB03→NB04 run with matched artifacts. This artifact-versioning fragility is itself an argument for the single-machine v2 pipeline (`docs/RESEARCH_PLAN_V2.md`).
 
 ---
 
 ## 7. Discussion
 
-*To be written after experiments.*
+The experiment returns a clear **negative result**: lightweight sequence models trained on TLE-derived position series do not beat SGP4 on this task. This is consistent across five training runs (see `CHANGELOG.md` → *ML Training Run Log*), and no amount of the tuning attempted (capacity increases, dropout, weight decay, Optuna/ASHA search) reversed it. Four structural reasons explain why, in decreasing order of importance:
 
-Expected findings based on the literature and the project hypothesis:
-- The ML models should match or exceed SGP4 accuracy at all horizons when the TLE is fresh (< 1 day), since the 90-minute input window captures the satellite's current dynamical state.
-- The advantage of the ML models is expected to be largest for TLE ages > 3 days, where SGP4 accumulates significant unmodelled drag error but the model's learned dynamics remain anchored to recent observations.
-- The Transformer may outperform the LSTM on longer horizons (T+120) due to its ability to attend to non-contiguous patterns in the input window (e.g., re-entry of the satellite into eclipse, which has a consistent effect on drag).
+1. **There is no independent ground truth — the ceiling is "tie SGP4."** Both the target and the baseline are SGP4 outputs (§5.7). The only learnable signal is the difference between a fresh-TLE and a stale-TLE SGP4 run, which is dominated by SGP4's own analytic along-track drag divergence — a quantity SGP4 already computes deterministically from `BSTAR` and elapsed time. A network cannot out-predict the physics model at reproducing the physics model; the best attainable score is to match the baseline, and the models fall short of even that.
+
+2. **The residual target is small and noisy at 3-day staleness.** With a 3-day-old TLE the SGP4-stale error is only ~6 km, much of it near the numerical/geometric noise floor. There is little coherent structure for the model to capture, so it fits noise — the classic small-signal / flexible-model failure. (Raising `STALE_DAYS` to 7 in Run 4 to manufacture a larger residual is diagnostic of this problem, not a fix: it changes the *problem* to flatter the model rather than answering the original question, and the models still lost.)
+
+3. **Residuals are learned in an ill-posed coordinate system.** Targets are geodetic `(lat°, lon°, alt km)` residuals, standard-scaled. One degree of longitude is ~111 km at the equator and ~0 km at the poles, and longitude wraps at ±180°, so a fixed-scale regression target is physically inconsistent across the globe. Position residuals should be expressed in an orbit-relative Cartesian frame (radial / along-track / cross-track, i.e. RIC) in km, where the dominant error (along-track) is a single well-behaved axis.
+
+4. **The experiment cannot test its own central hypothesis.** As shown in §6.2, the dataset contains no windows in the > 3-day staleness regime where an ML advantage was predicted. Even a favourable outcome in the measured cohorts would not have confirmed the hypothesis.
+
+Taken together, these are design-level issues, not hyperparameter issues. Deeper networks or longer searches cannot overcome a target that is bounded above by the baseline it is trying to beat.
 
 ---
 
 ## 8. Conclusion
 
-*To be written after experiments.*
+Within the scope studied — TLE-only data, SGP4-derived targets, LEO satellites, limited (single-GPU / Colab) compute — **deep sequence models do not improve on SGP4 for multi-horizon orbit prediction, and in practice degrade it.** The result is robust across architectures (MLP, LSTM, Transformer), across five training runs, and against a correctly-constructed strong baseline with a verified do-nothing control.
+
+This is a genuine and useful finding: it rules out a tempting but ill-posed approach and localises *why* it fails. The productive next step is not a bigger model but a better-posed problem. Specifically (see §9 and `docs/RESEARCH_PLAN_V2.md`):
+
+- Replace SGP4-vs-SGP4 targets with a proxy for **real** SGP4 error — the divergence of each TLE from the *next* independently-fitted TLE at its epoch (the standard Peng & Bai formulation [5, 6]).
+- Add **space-weather drivers** (F10.7, Ap/Kp) — the physical cause of drag error that SGP4 cannot see and the only place a genuine learnable signal exists.
+- Learn residuals in the **RIC** frame (km), not geodetic degrees.
+- Use **gradient-boosted trees** (LightGBM) rather than deep nets: better suited to this small, tabular, low-signal regression, and trainable in seconds on CPU — a direct match for the project's compute constraints.
 
 ---
 

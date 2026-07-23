@@ -218,7 +218,7 @@ residual_km = corrector.predict_residual(
 |---|---|
 | `models/residual_model.pt` | PyTorch state dict (trained weights) |
 | `models/residual_model.json` | Normalisation stats + architecture metadata |
-| `notebooks/train_residual_model.ipynb` | Full training notebook (Colab-compatible) |
+| `archive/notebooks/train_residual_model.ipynb` | Full training notebook (Colab-compatible) |
 | `src/ml/model.py` | `ResidualPredictor` class definition |
 | `src/ml/predict.py` | `ResidualCorrector`, `features_from_satrec`, `apply_correction_to_position` |
 
@@ -228,7 +228,7 @@ residual_km = corrector.predict_residual(
 
 To retrain the model (e.g. after adding satellites or changing parameters):
 
-1. Open `notebooks/train_residual_model.ipynb` in Google Colab
+1. Open `archive/notebooks/train_residual_model.ipynb` in Google Colab
 2. Run all cells top-to-bottom (credentials → fetch → generate → train → evaluate → save)
 3. Download `residual_model.pt` and `residual_model.json` from Colab
 4. Drop both files into `models/`

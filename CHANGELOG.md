@@ -9,6 +9,24 @@ All notable changes to this project are documented in this file.
 Tracks every Colab training run for the ML residual-correction models.  
 All MAE figures are on the held-out **test set** (last 15% by time, ~31k windows).
 
+### Direction change — 2026-07-18 (deep-net study closed as negative result; pivot to trees)
+
+**Decision:** stop tuning the NB01–04 deep sequence models and re-pose the problem.
+
+- **Why:** across Runs 1–5, no ML model (MLP/LSTM/Transformer) beat the SGP4-stale baseline
+  at any horizon. The verified *do-nothing* control (zero residual) scores 6.31 km ≈ the
+  6.29 km baseline, so every trained model *degrades* the prediction. Root causes are
+  design-level, not tuning-level: target and baseline are both SGP4 (ceiling = "tie SGP4"),
+  geodetic-degree residuals are ill-posed, and the >3-day staleness regime has no test data.
+  Full analysis written up in `archive/docs/RESEARCH_PLAN.md` §6–§8.
+- **Pivot (`archive/docs/RESEARCH_PLAN_V2.md`):** real ground truth via consecutive-TLE-pair
+  divergence, RIC-frame targets (km), space-weather features (F10.7/Ap/Kp), and **LightGBM**
+  (CPU, seconds — no GPU/Colab). Scaffolded in `archive/notebooks/05_residual_trees.ipynb` (physics
+  helpers verified; awaiting a data run).
+- **Portfolio refocus (2026-07-18):** the deep-net research (NB01–05) + research plans were moved to
+  `archive/`. The project's ML story is now the single explainable notebook
+  `notebooks/satellite_prediction_accuracy.ipynb` (SGP4 accuracy vs. TLE age). The app is unchanged.
+
 ### Run 4 — Completed 2026-06-04 (STALE_DAYS = 7)
 
 **Commit:** Pending

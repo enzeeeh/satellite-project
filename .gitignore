@@ -64,6 +64,9 @@ data/tle_cache/
 data/collected/*.csv
 data/collected/*.npy
 data/collected/*.json
+data/collected/*.zip
+data/collected/*.pt
+data/collected/*.pkl
 
 # Colab download artifacts that land in notebooks/
 notebooks/*.zip
