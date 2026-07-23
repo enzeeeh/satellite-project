@@ -13,8 +13,7 @@ Enter your ground station coordinates, a NORAD ID (or local TLE file), and a tim
 3. **Coordinate transforms** — TEME is rotated to **ECEF** (Earth-Centered, Earth-Fixed) using the Greenwich Mean Sidereal Time angle, then converted to geodetic lat/lon/alt.
 4. **Elevation computation** — The vector from the ground station to the satellite is projected into the local **topocentric** frame (South-East-Zenith). The elevation angle is the angle above the local horizon.
 5. **Pass detection** — A sliding window scans the elevation time series for intervals where the angle exceeds the configured threshold. AOS, TCA (peak), and LOS events are recorded for each pass.
-6. **ML correction** — A PyTorch residual network trained on historical SGP4 errors applies a learned correction to elevation estimates, improving accuracy on passes where systematic SGP4 drift is known to occur. Can be toggled on/off in the sidebar.
-7. **Visualization & AI** — Plotly renders all charts client-side. When the AI toggle is on, pass data is summarised into a structured prompt and streamed through Groq's Llama 3.1 API.
+6. **Visualization & AI** — Plotly renders all charts client-side. When the AI toggle is on, pass data is summarised into a structured prompt and streamed through Groq's Llama 3.1 API.
 
 ---
 
@@ -66,7 +65,6 @@ python main.py --tle data/tle_leo/AO-91.txt --hours 48 --plot plotly
 | **Live TLE fetching** | CelesTrak (no account) or Space-Track (free account) |
 | **5 visualization tabs** | Passes, Elevation, Sky View, Ground Track, Globe |
 | **AI explanations** | Auto-streamed Groq/Llama commentary per tab |
-| **ML corrections** | Optional PyTorch residual error reduction layer |
 | **CLI support** | Scriptable command-line interface |
 
 ---
@@ -109,7 +107,6 @@ CelesTrak works without any account.
 | Dashboard | Streamlit | Interactive browser UI |
 | Charts | Plotly | Elevation, sky polar, ground track, globe |
 | AI explanations | Groq + Llama 3.1 | Natural-language pass summaries |
-| ML corrections | PyTorch | Optional neural network residual layer |
 | Testing | Pytest | Automated test suite |
 
 ---
@@ -123,14 +120,15 @@ satellite-project/
 ├── src/
 │   ├── core/                   Physics engine (SGP4, coordinates, TLE fetcher)
 │   ├── visualization/          Elevation, ground track, sky polar, globe (Plotly)
-│   ├── ml/                     Neural network residual correction
 │   └── llm_explainer.py        Groq streaming AI explanation builder
 ├── data/
 │   ├── tle_leo/                Local LEO TLEs (AO-91, AO-95)
-│   └── tle_geo/                Local GEO TLEs
-├── models/                     Pre-trained ML model weights
+│   ├── tle_geo/                Local GEO TLEs
+│   └── analysis/               Dataset for the accuracy-analysis notebook
+├── notebooks/                  Data-analysis notebook (SGP4 accuracy vs TLE age)
 ├── outputs/                    Generated JSON pass reports (git-ignored)
 ├── docs/                       Technical documentation and screenshots
+├── archive/                    Earlier exploratory ML research (not part of the app)
 └── tests/                      Automated test suite
 ```
 
@@ -152,9 +150,12 @@ satellite-project/
 
 ## Documentation
 
+- [Portfolio Notes](PORTFOLIO.md) — What this project demonstrates (the data-science story)
+- [Project Logbook](LOGBOOK.md) — Progress journal and future ideas
 - [Architecture](docs/ARCHITECTURE.md) — Module design and data flow
-- [Prediction Pipeline](docs/deep_dive/prediction_pipeline.md) — SGP4 math, coordinate transforms, ML corrections
-- [FAQ](docs/FAQ.md) — Physics, data sources, ML, and testing questions
+- [Prediction Pipeline](docs/deep_dive/prediction_pipeline.md) — SGP4 math and coordinate transforms
+- [Data Analysis Notebook](notebooks/satellite_prediction_accuracy.ipynb) — how SGP4 accuracy decays with TLE age (real ISS data)
+- [FAQ](docs/FAQ.md) — Physics, data sources, and testing questions
 - [Development Guide](docs/DEVELOPMENT.md) — Contributing, testing, code style
 - [Roadmap](docs/ROADMAP.md) — Planned features
 
