@@ -1,5 +1,7 @@
 # Satellite Pass Predictor
 
+🔗 **[Live project page & data-science results →](https://enzeeeh.github.io/satellite-project/)**
+
 **Predict when satellites are visible from your location** — an interactive Streamlit dashboard powered by SGP4 orbital mechanics, live TLE fetching, and AI-generated explanations via Groq.
 
 Enter your ground station coordinates, a NORAD ID (or local TLE file), and a time window. The app predicts every pass (AOS → TCA → LOS), shows pass quality, and explains the results in plain English. Five visualization tabs give you every angle on the satellite's path.
