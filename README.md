@@ -1,6 +1,6 @@
 # Satellite Pass Predictor
 
-🔗 **[Live project page & data-science results →](https://enzeeeh.github.io/satellite-project/)**
+🛰️ **[Try the live app →](https://enzeeeh-satellite-project.streamlit.app/)**  ·  🔗 **[Project page & data-science results →](https://enzeeeh.github.io/satellite-project/)**
 
 **Predict when satellites are visible from your location** — an interactive Streamlit dashboard powered by SGP4 orbital mechanics, live TLE fetching, and AI-generated explanations via Groq.
 

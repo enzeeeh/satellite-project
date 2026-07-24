@@ -98,6 +98,34 @@ _CUSTOM_LOCATION = "📍 Custom (enter coordinates…)"
 
 
 # ---------------------------------------------------------------------------
+# TLE freshness helpers (used in the sidebar, so defined before it)
+# ---------------------------------------------------------------------------
+def _tle_age_days(line1: str):
+    """Age (in days) of a TLE at the current time, parsed from its epoch field. None on error."""
+    try:
+        s = line1[18:32].strip()
+        yy = int(s[:2]); year = 2000 + yy if yy < 57 else 1900 + yy
+        epoch = datetime(year, 1, 1, tzinfo=timezone.utc) + timedelta(days=float(s[2:]) - 1)
+        return max(0.0, (datetime.now(timezone.utc) - epoch).total_seconds() / 86400.0)
+    except Exception:
+        return None
+
+
+def _freshness(age_days: float):
+    """Map a TLE age to a freshness rating. Returns (emoji, label, streamlit-level, message)."""
+    if age_days < 1.0:
+        return ("🟢", "Fresh", "success",
+                "Predictions should be reliable — this orbital data is up to date.")
+    if age_days < 4.0:
+        return ("🟡", "Aging", "info",
+                "Still usable, but accuracy slips as the data ages (SGP4 error grows a few km per day "
+                "for low orbits). Fetch a newer TLE for best results.")
+    return ("🔴", "Stale", "warning",
+            "This data is old — the prediction could be off by tens of km. Switch the sidebar TLE source "
+            "to a live fetch to get the latest orbit.")
+
+
+# ---------------------------------------------------------------------------
 # Sidebar: inputs
 # ---------------------------------------------------------------------------
 with st.sidebar:
@@ -161,6 +189,13 @@ with st.sidebar:
 
     if fetch_error:
         st.error(f"TLE error: {fetch_error}")
+
+    # -- TLE freshness meter --
+    if tle_line1:
+        _age = _tle_age_days(tle_line1)
+        if _age is not None:
+            _emoji, _label, _, _ = _freshness(_age)
+            st.caption(f"{_emoji} TLE age: **{_age:.1f} days** — {_label}")
 
     st.divider()
     st.header("Prediction Window")
@@ -338,9 +373,20 @@ def _render_how_it_works():
         )
 
 
-def _render_summary(sat_name, passes, times, azimuths, hours, threshold_deg):
+def _render_freshness_meter(tle_age_days):
+    """Prominent TLE-freshness callout tying data age to expected reliability."""
+    if tle_age_days is None:
+        return
+    emoji, label, level, message = _freshness(tle_age_days)
+    text = (f"{emoji} **TLE freshness: {label}** — this orbital data is **{tle_age_days:.1f} days old.**  \n"
+            f"{message}")
+    getattr(st, level)(text)
+
+
+def _render_summary(sat_name, passes, times, azimuths, hours, threshold_deg, tle_age_days=None):
     """Plain-English conclusion that ties every tab together."""
     st.subheader(f"Summary — {sat_name}")
+    _render_freshness_meter(tle_age_days)
 
     if not passes:
         st.warning(
@@ -593,7 +639,8 @@ if run_btn:
 
         # ---- Summary tab (conclusion that ties all tabs together) ----
         with tabs[-1]:
-            _render_summary(sat_name, passes, times, azimuths, float(hours), float(threshold))
+            _render_summary(sat_name, passes, times, azimuths, float(hours), float(threshold),
+                            tle_age_days=_tle_age_days(tle_line1))
 
 else:
     st.info("Configure your settings in the sidebar and click **Run Prediction** to start.")
