@@ -5,6 +5,25 @@ Newest entry first. (Release-style notes live in `CHANGELOG.md`; this file is th
 
 ---
 
+## 2026-07-24 (later) — Freshness meter, fresh TLE library, live deploy
+
+- **App is LIVE** on Streamlit Community Cloud → <https://enzeeeh-satellite-project.streamlit.app/>
+  (auto-deploys from `main`). GitHub Pages is also live → <https://enzeeeh.github.io/satellite-project/>.
+  Both links are in the README header.
+- **TLE freshness meter** (the ⭐ feature from the ideas list): `app.py` parses the loaded TLE's epoch
+  age and shows a Fresh/Aging/Stale rating — compact badge in the sidebar, prominent callout in the
+  Summary tab — tying data age to expected reliability (from the accuracy study). Helpers
+  `_tle_age_days` / `_freshness` are defined **before** the sidebar (the sidebar runs at import time).
+- **Refreshed the local TLE library** (`data/tle_leo`, `data/tle_geo`) with 14 current satellites
+  (ISS, Hubble, NOAA-15/18/19/20, Terra, Landsat-8, METEOR-M2, SO-50, AO-91, AO-95, GOES-16/17).
+  The old locals were from 2017. Note: NORAD 27607 is **SO-50**, not Aqua.
+- Verified headless (freshness badge + callout render; prediction runs clean). Pushed as `2c28138`.
+
+**Now open:** space-weather feature for the classifier (CelesTrak unreachable from build env — try from
+your machine); retake README screenshots; optional `use_container_width` → `width` deprecation cleanup.
+
+---
+
 ## 2026-07-24 — Added a classification study (make it read as an ML project)
 
 **Why:** the regression notebook alone (one simple model that lost to a baseline, no explicit ML
