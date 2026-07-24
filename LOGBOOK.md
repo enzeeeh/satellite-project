@@ -29,8 +29,17 @@ framing) didn't *read* as a DS/ML project — a fair critique. Fixed both gaps.
   regression, accuracy vs R², baselines) written as a study note.
 - Updated `PORTFOLIO.md` (both studies, explicit ML framing, model-comparison skills) and README links.
 
+**Committed + pushed** to `main` (`479e687`). Also built a **GitHub Pages** site on the `gh-pages`
+branch (landing page `index.html` + both notebooks rendered to HTML + `.nojekyll`).
+
+**⚠️ One manual step left — enable Pages:** GitHub repo → **Settings → Pages → Source: "Deploy from a
+branch" → Branch: `gh-pages` / `/ (root)` → Save.** Site then goes live at
+<https://enzeeeh.github.io/satellite-project/> (~1 min to build). *To update the site later:* re-run
+`nbconvert --to html` on the notebooks + rebuild `index.html`, then push those files to `gh-pages`.
+
 **Still open:** space weather (F10.7/Ap) not in the classifier — CelesTrak was unreachable from the
-build environment; it's the natural next feature. This session's work is **uncommitted**.
+build environment; it's the natural next feature. Also: deploy the *app* on Streamlit Community Cloud
+(separate from Pages, which only hosts the static site — it can't run the Streamlit backend).
 
 ---
 
