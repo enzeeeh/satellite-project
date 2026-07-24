@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Satellite Pass Predictor — project & data science</title>
+<style>
+  :root {
+    --bg:#ffffff; --fg:#1a1f2b; --muted:#5b6472; --card:#f6f8fa; --border:#e2e6ea;
+    --accent:#2b6cb0; --accent-fg:#ffffff; --win:#1a7a4a;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#0f1420; --fg:#e6eaf0; --muted:#9aa4b2; --card:#171d2b; --border:#28303f;
+            --accent:#4a90d9; --win:#3fbf7f; }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg);
+    font:16px/1.6 system-ui,-apple-system,Segoe UI,Roboto,sans-serif; }
+  .wrap { max-width:820px; margin:0 auto; padding:2.5rem 1.25rem 4rem; }
+  header { text-align:center; margin-bottom:2.5rem; }
+  h1 { font-size:2.1rem; margin:.2rem 0; letter-spacing:-.02em; }
+  .tag { color:var(--muted); font-size:1.1rem; }
+  h2 { font-size:1.4rem; margin:2.5rem 0 .75rem; border-bottom:1px solid var(--border); padding-bottom:.4rem; }
+  a { color:var(--accent); }
+  .btns { display:flex; flex-wrap:wrap; gap:.6rem; justify-content:center; margin-top:1.2rem; }
+  .btn { display:inline-block; padding:.55rem 1rem; border-radius:8px; text-decoration:none;
+    background:var(--accent); color:var(--accent-fg); font-weight:600; }
+  .btn.ghost { background:transparent; color:var(--accent); border:1px solid var(--accent); }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:12px;
+    padding:1.1rem 1.25rem; margin:1rem 0; }
+  .card h3 { margin:.1rem 0 .5rem; font-size:1.15rem; }
+  .muted { color:var(--muted); }
+  table { border-collapse:collapse; width:100%; margin:.6rem 0; font-size:.95rem; overflow-x:auto; display:block; }
+  th,td { border:1px solid var(--border); padding:.45rem .6rem; text-align:left; white-space:nowrap; }
+  th { background:var(--card); }
+  .win { color:var(--win); font-weight:700; }
+  code { background:var(--card); padding:.1rem .35rem; border-radius:5px; font-size:.9em; }
+  ul { padding-left:1.2rem; }
+  footer { margin-top:3rem; text-align:center; color:var(--muted); font-size:.9rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div style="font-size:2.6rem">🛰️</div>
+    <h1>Satellite Pass Predictor</h1>
+    <p class="tag">Predict when a satellite is visible from your location — built on real orbital physics (SGP4) — plus a data-science study of how the predictions decay over time.</p>
+    <div class="btns">
+      <a class="btn" href="https://github.com/enzeeeh/satellite-project">View the code on GitHub</a>
+      <a class="btn ghost" href="satellite_prediction_accuracy.html">Regression study</a>
+      <a class="btn ghost" href="tle_staleness_classifier.html">Classification study</a>
+    </div>
+  </header>
+
+  <h2>The product — a pass-prediction app</h2>
+  <p>An interactive Streamlit dashboard: pick your city, choose a satellite, and get every upcoming
+  visible pass (rise → peak → set) across six tabs — a pass table, elevation-over-time, a polar sky
+  view, a ground track, a 3-D globe, and a plain-English <strong>Summary</strong> that explains, step by
+  step, how the prediction is made. Pure physics (SGP4), live orbital data, 41 passing tests.</p>
+  <p class="muted">Run it locally: <code>pip install -r requirements.txt</code> then
+  <code>streamlit run app.py</code>. (A live hosted demo can be added via Streamlit Community Cloud.)</p>
+
+  <h2>The data science</h2>
+  <p>The app is physics; the data science is how I <em>understand and stress-test</em> it. I collected
+  real orbital history from the Space-Track API and asked two questions — one a <strong>regression</strong>,
+  one a <strong>classification</strong>.</p>
+
+  <div class="card">
+    <h3>Study 2 — Classification: “is this TLE too stale to trust?”</h3>
+    <p class="muted">Supervised binary classification on 32,540 real measurements from 5 satellites
+    (altitudes ~420–870 km). Target: is the prediction error &gt; 10 km? Four models compared on a
+    held-out stratified test set.</p>
+    <table>
+      <tr><th>Model</th><th>Accuracy</th><th>Recall</th><th>ROC-AUC</th></tr>
+      <tr><td>Baseline (always “reliable”)</td><td>86.3%</td><td>0.00</td><td>0.50</td></tr>
+      <tr><td>Logistic Regression</td><td>90.9%</td><td>0.64</td><td>0.95</td></tr>
+      <tr><td>Decision Tree</td><td>91.7%</td><td>0.73</td><td>0.95</td></tr>
+      <tr><td class="win">Random Forest</td><td class="win">96.3%</td><td class="win">0.86</td><td class="win">0.99</td></tr>
+    </table>
+    <p>The Random Forest flags stale data with <strong>96.3% accuracy and ROC-AUC 0.99</strong>, and its
+    feature importance matches the physics — <strong>TLE age</strong> and <strong>orbital altitude</strong>
+    (drag) dominate. → <a href="tle_staleness_classifier.html">read the full notebook</a>.</p>
+  </div>
+
+  <div class="card">
+    <h3>Study 1 — Regression: how fast does accuracy decay?</h3>
+    <p class="muted">180 days of ISS data; 11,267 measurements of (TLE age → error in km).</p>
+    <ul>
+      <li>Error grows from <strong>&lt;1 km when fresh to ~55 km after a week</strong> (~7 km/day).</li>
+      <li>The <em>average</em> trend is highly predictable (<strong>R² = 0.98</strong>); a single
+      prediction’s error is not (<strong>R² = 0.08</strong>) — it’s dominated by space weather.</li>
+      <li>A naïve baseline actually <strong>beat</strong> the model on individual predictions (19.8 vs
+      23.7 km MAE) — so the honest fix is to refresh the data, which is what the app does.</li>
+    </ul>
+    <p>→ <a href="satellite_prediction_accuracy.html">read the full notebook</a>.</p>
+  </div>
+
+  <h2>What this project demonstrates</h2>
+  <ul>
+    <li>Data acquisition from a live API, and building clean, reproducible datasets.</li>
+    <li>Both problem types — <strong>regression</strong> and <strong>classification</strong> — with the
+    right metrics for each (R²/MAE vs accuracy/recall/ROC-AUC).</li>
+    <li>Model comparison against a baseline, handling imbalanced classes, and interpretable results.</li>
+    <li>Judgment: knowing when <em>not</em> to use ML (physics beat it for the core prediction).</li>
+    <li>Shipping a real, tested, documented product.</li>
+  </ul>
+
+  <footer>
+    Built by <a href="https://github.com/enzeeeh">@enzeeeh</a> ·
+    <a href="https://github.com/enzeeeh/satellite-project">source</a> ·
+    <a href="https://github.com/enzeeeh/satellite-project/blob/main/PORTFOLIO.md">portfolio notes</a>
+  </footer>
+
+</div>
+</body>
+</html>
