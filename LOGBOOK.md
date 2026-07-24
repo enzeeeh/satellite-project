@@ -5,6 +5,35 @@ Newest entry first. (Release-style notes live in `CHANGELOG.md`; this file is th
 
 ---
 
+## 2026-07-24 — Added a classification study (make it read as an ML project)
+
+**Why:** the regression notebook alone (one simple model that lost to a baseline, no explicit ML
+framing) didn't *read* as a DS/ML project — a fair critique. Fixed both gaps.
+
+**What was added:**
+- `notebooks/tle_staleness_classifier.ipynb` — a **supervised binary classification** study:
+  *"is this TLE too stale to trust (error > 10 km)?"* on **32,540 real measurements from 5 satellites**
+  (`data/analysis/tle_reliability.csv`, altitudes ~420–870 km). Features: age, altitude, mean motion,
+  inclination, eccentricity, B*.
+- Compared **4 models** on a stratified test set with a proper leaderboard:
+
+  | Model | Accuracy | Recall | ROC-AUC |
+  |---|---|---|---|
+  | Baseline (majority) | 86.3% | 0.00 | 0.50 |
+  | Logistic Regression | 90.9% | 0.64 | 0.95 |
+  | Decision Tree | 91.7% | 0.73 | 0.95 |
+  | **Random Forest** | **96.3%** | **0.86** | **0.99** |
+
+- Feature importance matches the physics: **age (0.44) > mean-motion (0.16) ≈ altitude (0.16)**.
+- `docs/ML_CONCEPTS.md` — plain-English glossary (supervised/unsupervised, classification vs
+  regression, accuracy vs R², baselines) written as a study note.
+- Updated `PORTFOLIO.md` (both studies, explicit ML framing, model-comparison skills) and README links.
+
+**Still open:** space weather (F10.7/Ap) not in the classifier — CelesTrak was unreachable from the
+build environment; it's the natural next feature. This session's work is **uncommitted**.
+
+---
+
 ## 2026-07-18 → 2026-07-23 — The Big Refocus
 
 ### Where the project stands right now

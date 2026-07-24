@@ -154,7 +154,9 @@ satellite-project/
 - [Project Logbook](LOGBOOK.md) — Progress journal and future ideas
 - [Architecture](docs/ARCHITECTURE.md) — Module design and data flow
 - [Prediction Pipeline](docs/deep_dive/prediction_pipeline.md) — SGP4 math and coordinate transforms
-- [Data Analysis Notebook](notebooks/satellite_prediction_accuracy.ipynb) — how SGP4 accuracy decays with TLE age (real ISS data)
+- [Data Analysis Notebook](notebooks/satellite_prediction_accuracy.ipynb) — how SGP4 accuracy decays with TLE age (regression, real ISS data)
+- [Staleness Classifier Notebook](notebooks/tle_staleness_classifier.ipynb) — is a TLE too stale to trust? (4-model comparison, ROC-AUC 0.99)
+- [ML Concepts refresher](docs/ML_CONCEPTS.md) — plain-English DS glossary for this project
 - [FAQ](docs/FAQ.md) — Physics, data sources, and testing questions
 - [Development Guide](docs/DEVELOPMENT.md) — Contributing, testing, code style
 - [Roadmap](docs/ROADMAP.md) — Planned features
