@@ -5,6 +5,20 @@ Newest entry first. (Release-style notes live in `CHANGELOG.md`; this file is th
 
 ---
 
+## 2026-08-04 — Connect the app to the DS study; neutralize wording
+
+- **Gap the user spotted:** the live app showed only tracking, with no path to the DS study.
+  Added a **"📊 The data science behind this app"** callout (`_render_ds_callout` in `app.py`) —
+  expanded on the landing screen, collapsible in the Summary tab — linking to the live results page
+  and both rendered notebooks. The app is now a doorway to the study, not a dead end.
+- Renamed the **"How I'd explain it in an interview"** headings → **"Key takeaways"** in both notebooks
+  and `PORTFOLIO.md` (reads as analysis, not a personal note).
+- Re-rendered notebooks + re-published `gh-pages`. Pushed to `main` (`b7004c0`).
+- Reminder: the app/DS study are separate by design — the study lives in the notebooks + results page;
+  the only in-app bridges are the freshness meter and this callout.
+
+---
+
 ## 2026-07-24 (later) — Freshness meter, fresh TLE library, live deploy
 
 - **App is LIVE** on Streamlit Community Cloud → <https://enzeeeh-satellite-project.streamlit.app/>
