@@ -3,6 +3,10 @@
 *A short guide for anyone reviewing this repository: what it is, the data-science work inside it,
 and what I learned building it.*
 
+**Live:** 🛰️ [Try the app](https://enzeeeh-satellite-project.streamlit.app/) ·
+🔗 [Project & results page](https://enzeeeh.github.io/satellite-project/) ·
+💻 [Source](https://github.com/enzeeeh/satellite-project)
+
 ---
 
 ## The project in one paragraph
@@ -83,6 +87,17 @@ archived it ([`archive/`](archive/)) rather than shipping a worse model.
 
 ---
 
+## From analysis to a shipped feature
+
+The data science didn't stay in a notebook — it changed the product. The app has a **TLE freshness
+meter**: it reads the loaded orbital data's age and shows a Fresh / Aging / Stale rating (a badge in the
+sidebar, a callout in the Summary tab) that translates *"this data is 3 days old"* into *"expect the
+prediction to be getting less reliable — refresh it."* That threshold and wording come straight from the
+accuracy study. It's a small, concrete example of the loop that matters: **analysis → insight → a decision
+users actually see.**
+
+---
+
 ## What this demonstrates (my honest skills map)
 
 - **Data acquisition** — pulled and processed real data from a live API (Space-Track), built two
@@ -114,8 +129,15 @@ archived it ([`archive/`](archive/)) rather than shipping a worse model.
 
 ## See it yourself
 
+- **Live app:** <https://enzeeeh-satellite-project.streamlit.app/>
+- **Project & results page:** <https://enzeeeh.github.io/satellite-project/>
+- **The two studies:** [`notebooks/satellite_prediction_accuracy.ipynb`](notebooks/satellite_prediction_accuracy.ipynb)
+  (regression) · [`notebooks/tle_staleness_classifier.ipynb`](notebooks/tle_staleness_classifier.ipynb)
+  (classification)
+
+Or run it locally:
+
 ```bash
 pip install -r requirements.txt
 streamlit run app.py          # the product  → http://localhost:8501
-# then open notebooks/satellite_prediction_accuracy.ipynb for the analysis
 ```
