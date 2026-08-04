@@ -47,7 +47,8 @@
     <h1>Satellite Pass Predictor</h1>
     <p class="tag">Predict when a satellite is visible from your location — built on real orbital physics (SGP4) — plus a data-science study of how the predictions decay over time.</p>
     <div class="btns">
-      <a class="btn" href="https://github.com/enzeeeh/satellite-project">View the code on GitHub</a>
+      <a class="btn" href="https://enzeeeh-satellite-project.streamlit.app/">🛰️ Try the live app</a>
+      <a class="btn ghost" href="https://github.com/enzeeeh/satellite-project">View the code on GitHub</a>
       <a class="btn ghost" href="satellite_prediction_accuracy.html">Regression study</a>
       <a class="btn ghost" href="tle_staleness_classifier.html">Classification study</a>
     </div>
@@ -57,9 +58,10 @@
   <p>An interactive Streamlit dashboard: pick your city, choose a satellite, and get every upcoming
   visible pass (rise → peak → set) across six tabs — a pass table, elevation-over-time, a polar sky
   view, a ground track, a 3-D globe, and a plain-English <strong>Summary</strong> that explains, step by
-  step, how the prediction is made. Pure physics (SGP4), live orbital data, 41 passing tests.</p>
-  <p class="muted">Run it locally: <code>pip install -r requirements.txt</code> then
-  <code>streamlit run app.py</code>. (A live hosted demo can be added via Streamlit Community Cloud.)</p>
+  step, how the prediction is made. It also includes a <strong>TLE freshness meter</strong> that flags when
+  a satellite's data is getting too stale to trust. Pure physics (SGP4), live orbital data, 41 passing tests.</p>
+  <p class="muted"><strong><a href="https://enzeeeh-satellite-project.streamlit.app/">▶ Open the live app</a></strong>
+  — or run it locally: <code>pip install -r requirements.txt</code> then <code>streamlit run app.py</code>.</p>
 
   <h2>The data science</h2>
   <p>The app is physics; the data science is how I <em>understand and stress-test</em> it. I collected
