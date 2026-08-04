@@ -16,6 +16,13 @@ Newest entry first. (Release-style notes live in `CHANGELOG.md`; this file is th
 - Re-rendered notebooks + re-published `gh-pages`. Pushed to `main` (`b7004c0`).
 - Reminder: the app/DS study are separate by design — the study lives in the notebooks + results page;
   the only in-app bridges are the freshness meter and this callout.
+- **CelesTrak fetch fix + local refresh:** the live CelesTrak fetch was failing (connection timeout) because
+  CelesTrak throttles the default `python-requests` User-Agent. Fixed in `src/core/tle_fetcher.py` (browser
+  UA + 20s timeout) — verified working. Also refreshed all 14 local TLEs (had aged ~11 days → 🔴 Stale).
+  **Side benefit:** CelesTrak IS reachable with a proper UA, so the classifier's space-weather feature
+  (F10.7/Ap from CelesTrak) is now unblocked — add the same UA to that fetch when building it.
+- Note: local TLE files go stale in days by nature; the durable fix for the *deployed* app is the live
+  fetch (now working) or setting `SPACETRACK_USER`/`SPACETRACK_PASS` as Streamlit Cloud secrets.
 
 ---
 
