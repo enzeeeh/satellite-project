@@ -36,6 +36,10 @@ _SPACETRACK_TLE_URL = (
 _CACHE_DIR = Path(__file__).resolve().parents[2] / "data" / "tle_cache"
 
 _REQUEST_TIMEOUT = 10  # seconds
+_CELESTRAK_TIMEOUT = 20  # CelesTrak can be slow to respond; give it more room
+# CelesTrak throttles/refuses the default "python-requests" User-Agent, which shows up as a
+# connection timeout. Present a browser-like User-Agent so the request goes through.
+_HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; satellite-pass-predictor; +https://github.com/enzeeeh/satellite-project)"}
 
 
 def _parse_tle_text(text: str) -> Tuple[str, str, str]:
@@ -107,7 +111,7 @@ def fetch_tle_celestrak(
     """
     url = _CELESTRAK_URL.format(norad_id=norad_id)
     try:
-        resp = requests.get(url, timeout=_REQUEST_TIMEOUT)
+        resp = requests.get(url, headers=_HEADERS, timeout=_CELESTRAK_TIMEOUT)
         resp.raise_for_status()
         name, line1, line2 = _parse_tle_text(resp.text)
         _write_cache(norad_id, "celestrak", name, line1, line2)
