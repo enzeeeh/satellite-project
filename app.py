@@ -329,6 +329,24 @@ def _compass(azimuth_deg: float) -> str:
     return dirs[int((azimuth_deg % 360) / 45.0 + 0.5) % 8]
 
 
+def _render_ds_callout(expanded: bool = False):
+    """Point visitors to the data-science study behind the app."""
+    with st.expander("📊 The data science behind this app", expanded=expanded):
+        st.markdown(
+            "This app is built on physics (SGP4) — but I also **studied how reliable its predictions are** "
+            "as the orbital data (TLE) ages, using real satellite data:\n\n"
+            "- **Regression** — measured how prediction error grows with data age (~7 km/day; the average "
+            "trend is highly predictable, individual errors are noisy).\n"
+            "- **Classification** — trained a model to flag when a TLE is *too stale to trust*, reaching "
+            "**96% accuracy (ROC-AUC 0.99)**.\n\n"
+            "The **TLE freshness meter** in this app is that study turned into a feature.\n\n"
+            "👉 See the full study: "
+            "[results page](https://enzeeeh.github.io/satellite-project/) · "
+            "[regression notebook](https://enzeeeh.github.io/satellite-project/satellite_prediction_accuracy.html) · "
+            "[classifier notebook](https://enzeeeh.github.io/satellite-project/tle_staleness_classifier.html)"
+        )
+
+
 def _render_how_it_works():
     """Explain the core prediction pipeline, tying each step to the tab that shows it."""
     with st.expander("🔬 How does this prediction actually work? (the 5 steps)", expanded=True):
@@ -396,6 +414,7 @@ def _render_summary(sat_name, passes, times, azimuths, hours, threshold_deg, tle
             "sidebar, then run the prediction again."
         )
         _render_how_it_works()
+        _render_ds_callout()
         return
 
     now = datetime.now(timezone.utc)
@@ -455,6 +474,7 @@ def _render_summary(sat_name, passes, times, azimuths, hours, threshold_deg, tle
     st.success(f"**Viewing tip:** {tips[best_quality]}")
 
     _render_how_it_works()
+    _render_ds_callout()
 
 
 # ---------------------------------------------------------------------------
@@ -644,6 +664,7 @@ if run_btn:
 
 else:
     st.info("Configure your settings in the sidebar and click **Run Prediction** to start.")
+    _render_ds_callout(expanded=True)
     with st.expander("Quick reference: popular NORAD IDs"):
         st.markdown("""
         | Satellite | NORAD ID |

@@ -53,7 +53,7 @@ warn *"this data is likely too old to trust; refresh it."*
 
 ---
 
-## DS study 1 — regression: how fast does accuracy decay? (the part I'd discuss in a DS interview)
+## DS study 1 — regression: how fast does accuracy decay?
 
 **Question.** Satellite predictions come from a small data snapshot called a TLE. TLEs age.
 How much accuracy do we lose per day — and can a model predict that error?
